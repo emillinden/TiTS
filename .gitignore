@@ -1,3 +1,9 @@
+# TiTS
+.tits-config
+
+# Mac OS
+.DS_Store
+
 # Logs
 logs
 *.log
