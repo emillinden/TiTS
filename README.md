@@ -86,6 +86,7 @@ You will have to enter connection credentials again.
 - Whitelist of issue keys to auto round
 - Try to get issue key from Toggl project name if not found in description
 - Command for deleting entries from Tempo by day
+- Error handling if post to tempo fails
 - ✅ ~~Custom rounding intervals~~
 - ✅ ~~Automatic rounding option by margin~~
 - ✅ ~~Better config file handling~~

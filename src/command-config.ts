@@ -5,13 +5,19 @@ import { FixMeLater } from "./types";
 
 const commandConfig = async (argv: FixMeLater) => {
   // Reset config
-  if (argv.config?.reset) {
+  if (argv.reset) {
     await commandConfigReset(argv);
     return;
   }
 
   // If no args, list the contents of the config file
   if (argv.list) {
+    const configFile = openConfig();
+    if (Object.keys(configFile).length === 0) {
+      logger.info(chalk.yellow("No configurations found."));
+      return;
+    }
+
     Object.entries(openConfig()).forEach(([key, value]) => {
       logger.info(`${chalk.bold.blue(key)}: ${value}`);
     });
@@ -50,9 +56,7 @@ const commandConfig = async (argv: FixMeLater) => {
 const commandConfigReset = async (argv: FixMeLater) => {
   try {
     await resetConfig();
-    logger.info(
-      chalk.green("Configuration credentials have been deleted successfully.")
-    );
+    logger.info(chalk.green("Configurations have been deleted successfully."));
   } catch (error: FixMeLater) {
     logger.error("Error deleting API keys:", error.message);
   }
