@@ -1,6 +1,6 @@
 {
   "name": "tits",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "main": "index.js",
   "bin": {
     "tits": "./dist/index.js"

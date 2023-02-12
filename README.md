@@ -8,6 +8,7 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 - Tries to find an issue key suffix in the description, but prompts you for one if not found.
 - Handles one day at a time, with the option to use custom dates.
 - Group identical issue descriptions into one combined time entry.
+- Asks if you want to round to 15 minute intervals.
 
 ## Prerequisites
 
@@ -74,3 +75,11 @@ Clears the config file. You will have to enter connection credentials again.
 ```bash
 $ tits reset
 ```
+
+## Todos
+- Custom rounding intervals
+- Automatic rounding option by margin
+- Exclude issues from rounding by name, for example ABC-*
+- Ability to get issue key from Toggl project name if not found in description
+- Better config file handling
+- Code cleanup
