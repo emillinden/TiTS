@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { logger } from "./log";
+import { logger } from "./logger";
 import { IssueKey, TogglTimeEntry } from "./types";
 import { prompt } from "./utils";
 
@@ -15,9 +15,16 @@ export async function getIssueKey(
   }
 
   if (!issueKey) {
-    logger.error(chalk.yellow(`Missing issue key: ${timeEntry.description}`));
+    logger.error(chalk.red(`Missing issue key: ${timeEntry.description}`));
     try {
-      issueKey = await prompt("Enter new issue key or leave empty to skip: ");
+      issueKey = await prompt(
+        "Enter new issue key or leave empty to skip: ",
+        validateIssueKey,
+        "Invalid issue key format, try again: Enter new issue key or leave empty to skip: ",
+        "",
+        true,
+        (input: string) => input.toUpperCase()
+      );
     } catch (error) {
       logger.error(chalk.red(error));
       return null;
@@ -52,7 +59,12 @@ export const getIssueDescription = async (
     logger.error(
       chalk.yellow(`Missing issue description: ${timeEntryFullDescription}`)
     );
-    timeEntryFullDescription = await prompt("Enter new issue description: ");
+    timeEntryFullDescription = await prompt(
+      "Enter new issue description: ",
+      (input: string) => input.length > 0,
+      "Invalid issue description, try again: Enter new issue description: ",
+      ""
+    );
   }
 
   return timeEntryFullDescription;

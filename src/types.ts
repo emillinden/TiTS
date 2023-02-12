@@ -12,9 +12,6 @@ export interface ConfigFile {
   tempoAuthorAccountId: string;
 }
 
-// TODO: Replace with enum and use better names
-export type ConfigKeys = "toggl" | "tempo" | "tempoAuthorAccountId";
-
 export interface TogglTimeEntryArgs {
   apiKey: string;
   startDate: string;
@@ -35,7 +32,7 @@ export interface TogglProjectArgs {
   projectId: number;
 }
 
-export interface TempoTimeEntryPostArgs {
+export interface TempoWorklogPostArgs {
   issueKey: string;
   /** Author account ID obtained from Jira settings */
   authorAccountId: string;
@@ -47,15 +44,66 @@ export interface TempoTimeEntryPostArgs {
   description?: string;
   remainingEstimateSeconds?: number;
   billableSeconds?: number;
-  attributes?: TempoTimeEntryPostArgsAttribute[];
+  attributes?: TempoWorklogPostArgsAttribute[];
 }
 
-export interface TempoTimeEntryPostArgsAttribute {
+export interface TempoWorklogPostArgsAttribute {
   key: string;
   value: string;
 }
 
-export interface TempoTimeEntryPostResponse {}
+export interface TempoWorklogsGetArgs {
+  /** Date in YYYY-MM-DD format */
+  from: string;
+  /** Date in YYYY-MM-DD format */
+  to: string;
+  /** Date in YYYY-MM-DD format */
+  updatedFrom?: string;
+  issue?: string[];
+  project?: string[];
+  offset?: number;
+  /** Default 50, max 1000 */
+  limit?: number;
+}
+
+export interface TempoWorklogsGetResponse {
+  metadata: TempoGetResponseMetadata;
+  results: TempoWorklog[];
+}
+
+export interface TempoGetResponseMetadata {
+  count: number;
+  offset: number;
+  limit: number;
+  next: string | null;
+  previous: string | null;
+}
+
+export interface TempoWorklog {
+  tempoWorklogId: number;
+  jiraWorklogId: number;
+  issue: {
+    self: string;
+    key: string;
+    id: number;
+  };
+  timeSpentSeconds: number;
+  billableSeconds: number;
+  startDate: string;
+  startTime: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    self: string;
+    accountId: string;
+    displayName: string;
+  };
+  attributes: {
+    self: string;
+    values: FixMeLater[];
+  };
+}
 
 export interface JiraIssue {
   accountKey: string;
