@@ -2,13 +2,14 @@
 
 const yargs = require("yargs");
 const chalk = require("chalk");
+import axios from "axios";
 import commandConfig from "./command-config";
 import commandSync from "./command-sync";
 import { createConfigFileIfNotExists } from "./config";
 import { FixMeLater } from "./types";
 
 async function main() {
-  createConfigFileIfNotExists();
+  init();
 
   const argv = yargs
     .command(
@@ -57,8 +58,7 @@ async function main() {
           type: "boolean",
         })
         .option("reset", {
-          description:
-            "Reset all saved config values",
+          description: "Reset all saved config values",
           type: "boolean",
         });
     })
@@ -83,5 +83,14 @@ async function main() {
       break;
   }
 }
+
+const init = () => {
+  // Configure Axios to not throw an error on non-2XX status codes
+  axios.defaults.validateStatus = function () {
+    return true;
+  };
+
+  createConfigFileIfNotExists();
+};
 
 main();

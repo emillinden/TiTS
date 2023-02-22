@@ -5,9 +5,19 @@ import { getConfig, setConfig } from "./config";
 import { parseDate } from "./date";
 import { getIssueDescription, getIssueKey } from "./issue-key";
 import { logger } from "./logger";
-import { postTempoWorklog } from "./tempo";
-import { fetchTogglTimeEntries, mergeDuplicateTogglTimeEntries } from "./toggl";
-import { FixMeLater, TempoWorklog, TempoWorklogPostArgs } from "./types";
+import { checkIfIssueKeyExists, postTempoWorklog } from "./tempo";
+import {
+  fetchTogglCurrentTimer,
+  fetchTogglTimeEntries,
+  mergeDuplicateTogglTimeEntries,
+  stopTogglTimer,
+} from "./toggl";
+import {
+  FixMeLater,
+  TempoWorklog,
+  TempoWorklogPostArgs,
+  TogglTimeEntry,
+} from "./types";
 import { formatTimeSpent, pluralize, prompt, promptKeypress } from "./utils";
 
 const commandSync = async (argv: FixMeLater) => {
@@ -23,11 +33,57 @@ const commandSync = async (argv: FixMeLater) => {
 
   await commandSyncCheckConfig();
 
+  // If a timer is currently running, prompt user to stop it
+  logger.info("Checking if Toggl timer is running...");
+  const runningTimer = await fetchTogglCurrentTimer();
+
+  if (typeof runningTimer === "undefined") {
+    logger.error("Failed to fetch current Toggl timer. Aborting");
+    process.exit(1);
+  }
+
+  if (runningTimer !== null) {
+    logger.error(
+      chalk.red("✗ ") +
+        chalk.redBright(
+          `Toggl timer "${runningTimer.description}" is currently running. Please stop it before syncing.`
+        )
+    );
+
+    const runningTimerAnswer = await prompt(
+      `Stop running timer? (y/n) `,
+      (input: string) => input === "y" || input === "n" || input === "",
+      "Invalid input, please enter y or n",
+      "n",
+      true,
+      (input: string) => input.toLowerCase()
+    );
+
+    if (runningTimerAnswer === "y") {
+      logger.info("Stopping Toggl timer...");
+      const timerStopped = await stopTogglTimer(runningTimer.id);
+
+      if (timerStopped) {
+        logger.info(
+          chalk.green("✓ ") + chalk.greenBright("Toggl timer stopped")
+        );
+      }
+    } else {
+      logger.error(chalk.red("Aborting"));
+      process.exit(0);
+    }
+  } else {
+    logger.info(
+      chalk.green("✓ ") + chalk.greenBright("No running Toggl timer found")
+    );
+  }
+
+  console.log("");
+
   logger.info(`Fetching Toggl time entries for ${date.format("YYYY-MM-DD")}`);
 
   // Fetch Toggl time entries
   const togglEntries = await fetchTogglTimeEntries({
-    apiKey: getConfig("togglApiToken") as string,
     startDate: date.format("YYYY-MM-DD"),
     endDate: moment(date).add(1, "day").format("YYYY-MM-DD"),
   });
@@ -40,25 +96,70 @@ const commandSync = async (argv: FixMeLater) => {
   }
 
   logger.info(
-    `Fetched ${pluralize(
-      togglEntries.length,
-      "Toggl time entry",
-      "Toggl time entries"
-    )}`
+    chalk.green("✓ ") +
+      chalk.greenBright(
+        `Fetched ${pluralize(
+          togglEntries.length,
+          "time entry",
+          "time entries"
+        )}`
+      )
   );
 
   const mergedTogglEntries = mergeDuplicateTogglTimeEntries(togglEntries);
   if (mergedTogglEntries.length !== togglEntries.length) {
     logger.info(
-      `Merged ${
-        togglEntries.length - mergedTogglEntries.length
-      } duplicate ${pluralize(
-        togglEntries.length - mergedTogglEntries.length,
-        "Toggl time entry",
-        "Toggl time entries"
-      )}`
+      chalk.green("✓ ") +
+        chalk.greenBright(
+          `Merged ${pluralize(
+            togglEntries.length - mergedTogglEntries.length,
+            "duplicate entry",
+            "duplicate entries"
+          )}`
+        )
     );
   }
+
+  // Check if issue keys exist in Jira
+  for (const entry of mergedTogglEntries) {
+    console.log("");
+
+    const issueKey = await getIssueKey(entry);
+    const remFromArr = (entry: TogglTimeEntry) =>
+      mergedTogglEntries.splice(mergedTogglEntries.indexOf(entry), 1);
+
+    if (!issueKey) {
+      logger.error(`Skipping ${entry.description} - no issue key`);
+      remFromArr(entry);
+      continue;
+    }
+
+    logger.info(`Checking if ${issueKey} exists in Jira...`);
+    const issueKeyExistsInJira = await checkIfIssueKeyExists(issueKey);
+
+    if (!issueKeyExistsInJira) {
+      logger.error(`Skipping ${entry.description} - issue key not found`);
+      remFromArr(entry);
+      continue;
+    }
+
+    logger.info(
+      chalk.green("✓ ") +
+        chalk.greenBright(`Issue key ${issueKey} exists in Jira`)
+    );
+
+    const issueDescription = await getIssueDescription(entry.description);
+
+    if (!issueDescription) {
+      logger.error(`Skipping ${entry.description} - no issue description`);
+      remFromArr(entry);
+      continue;
+    }
+
+    entry.description = `${issueKey}: ${issueDescription}`;
+  }
+
+  console.log("");
 
   logger.info(
     chalk.magenta(
@@ -79,7 +180,8 @@ const commandSync = async (argv: FixMeLater) => {
   // POST time entries to Tempo
   for (const entry of mergedTogglEntries) {
     try {
-      logger.info(chalk.grey(`----------------`));
+      console.log("");
+
       logger.info(`Posting ${entry.description}`);
       const issueKey = await getIssueKey(entry);
 
@@ -153,6 +255,12 @@ const commandSync = async (argv: FixMeLater) => {
         );
       }
 
+      // Skip if time spent is 0
+      if (issueTimeSpentSeconds <= 0) {
+        logger.error(`Skipping ${issueNiceName} - No time spent`);
+        continue;
+      }
+
       const tempoTimeEntry: TempoWorklogPostArgs = {
         issueKey: issueKey,
         description: issueDescription,
@@ -162,10 +270,7 @@ const commandSync = async (argv: FixMeLater) => {
         authorAccountId: getConfig("tempoAuthorAccountId") as string,
       };
 
-      const tempoResponse = await postTempoWorklog(
-        getConfig("tempoApiToken") as string,
-        tempoTimeEntry
-      );
+      const tempoResponse = await postTempoWorklog(tempoTimeEntry);
 
       if (!tempoResponse || !tempoResponse.tempoWorklogId) {
         logger.error(chalk.red(`Failed to post ${issueNiceName}`));
@@ -176,21 +281,23 @@ const commandSync = async (argv: FixMeLater) => {
 
       // Done!
       logger.info(
-        chalk.green(
-          `${issueNiceName} (${formatTimeSpent(
-            issueTimeSpentSeconds
-          )}) posted to Tempo!`
-        )
+        chalk.green("✓ ") +
+          chalk.greenBright(
+            `${issueNiceName} (${formatTimeSpent(
+              issueTimeSpentSeconds
+            )}) posted to Tempo`
+          )
       );
     } catch (error) {
       logger.error(`Error syncing time entry: ${error}`);
     }
   }
 
-  logger.info(chalk.grey(`----------------`));
+  console.log("");
+
   logger.info(
     chalk.green(
-      `Done! ${pluralize(
+      `✓ Done! ${pluralize(
         syncedWorklogs.length,
         "time entry",
         "time entries"

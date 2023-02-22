@@ -75,7 +75,7 @@ export const getIssueDescription = async (
  * @param issueKey The issue key to validate
  */
 
-const validateIssueKey = (issueKey: IssueKey): boolean => {
+export const validateIssueKey = (issueKey: IssueKey): boolean => {
   if (!issueKey) return false;
 
   return ISSUE_KEY_REGEX.test(issueKey);

@@ -77,16 +77,18 @@ To reset the config file, use:
 $ tits config --reset
 ```
 
-You will have to enter connection credentials again.
+You will have to enter api credentials again.
 
 ## Todos
 
-- Check if issue keys exists in Jira and prompt for correction if it doesn't
-- Whitelist of issue keys to skip rounding, for example ABC-\*
-- Whitelist of issue keys to auto round
-- Try to get issue key from Toggl project name if not found in description
-- Command for deleting entries from Tempo by day
-- Error handling if post to tempo fails
-- ✅ ~~Custom rounding intervals~~
-- ✅ ~~Automatic rounding option by margin~~
-- ✅ ~~Better config file handling~~
+- [ ] Check if issue keys exists in Jira and prompt for correction if it doesn't
+- [ ] Whitelist of issue keys to skip rounding, for example ABC-\*
+- [ ] Whitelist of issue keys to auto round
+- [ ] Try to get issue key from Toggl project name and tag (in that order) if not found in description
+- [ ] Command for deleting entries from Tempo by day
+- [ ] Error handling if post to tempo fails
+- [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
+- [x] Custom rounding intervals
+- [x] Automatic rounding option by margin
+- [x] Better config file handling
+- [x] Prompt user to stop Toggl Timer if one is currently running. Exit if declined

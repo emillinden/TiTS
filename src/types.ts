@@ -6,16 +6,13 @@ export interface TimeEntry {
   timeSpent: number;
 }
 
-export interface ConfigFile {
-  togglApiKey: string;
-  tempoApiKey: string;
-  tempoAuthorAccountId: string;
-}
-
 export interface TogglTimeEntryArgs {
-  apiKey: string;
   startDate: string;
   endDate: string;
+}
+
+export interface TogglStopTimerArgs {
+  timeEntryId: number;
 }
 
 export interface TogglTimeEntry {
@@ -28,8 +25,54 @@ export interface TogglTimeEntry {
 }
 
 export interface TogglProjectArgs {
-  apiKey: string;
   projectId: number;
+}
+
+export interface TempoGetResponse {
+  /** Current request url */
+  self: string;
+  metadata: TempoResponseMetadata;
+  results: TempoWorklog[];
+}
+
+export interface TempoPostResponse extends TempoWorklog {}
+
+export interface TempoWorklog {
+  tempoWorklogId: number;
+  jiraWorklogId: number;
+  issue: {
+    self: string;
+    key: string;
+    id: number;
+  };
+  timeSpentSeconds: number;
+  billableSeconds: number;
+  startDate: string;
+  startTime: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    self: string;
+    accountId: string;
+    displayName: string;
+  };
+  attributes: {
+    self: string;
+    values: FixMeLater[];
+  };
+}
+
+export interface TempoResponseMetadata {
+  /** Default 50 */
+  count: number;
+  offset: number;
+  /** Default 50 */
+  limit: number;
+  /** Next page request url */
+  next: string | null | undefined;
+  /** Previous page request url */
+  prev: string | null | undefined;
 }
 
 export interface TempoWorklogPostArgs {
@@ -64,45 +107,6 @@ export interface TempoWorklogsGetArgs {
   offset?: number;
   /** Default 50, max 1000 */
   limit?: number;
-}
-
-export interface TempoWorklogsGetResponse {
-  metadata: TempoGetResponseMetadata;
-  results: TempoWorklog[];
-}
-
-export interface TempoGetResponseMetadata {
-  count: number;
-  offset: number;
-  limit: number;
-  next: string | null;
-  previous: string | null;
-}
-
-export interface TempoWorklog {
-  tempoWorklogId: number;
-  jiraWorklogId: number;
-  issue: {
-    self: string;
-    key: string;
-    id: number;
-  };
-  timeSpentSeconds: number;
-  billableSeconds: number;
-  startDate: string;
-  startTime: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  author: {
-    self: string;
-    accountId: string;
-    displayName: string;
-  };
-  attributes: {
-    self: string;
-    values: FixMeLater[];
-  };
 }
 
 export interface JiraIssue {
