@@ -61,7 +61,10 @@ const commandSync = async (argv: FixMeLater) => {
 
     if (runningTimerAnswer === "y") {
       logger.info("Stopping Toggl timer...");
-      const timerStopped = await stopTogglTimer(runningTimer.id);
+      const timerStopped = await stopTogglTimer(
+        runningTimer.workspace_id,
+        runningTimer.id
+      );
 
       if (timerStopped) {
         logger.info(
@@ -121,18 +124,23 @@ const commandSync = async (argv: FixMeLater) => {
   }
 
   // Check if issue keys exist in Jira
+  const checkedKeys = new Set();
   for (const entry of mergedTogglEntries) {
-    console.log("");
-
     const issueKey = await getIssueKey(entry);
     const remFromArr = (entry: TogglTimeEntry) =>
       mergedTogglEntries.splice(mergedTogglEntries.indexOf(entry), 1);
+
+    if (checkedKeys.has(issueKey)) continue;
+
+    console.log("");
 
     if (!issueKey) {
       logger.error(`Skipping ${entry.description} - no issue key`);
       remFromArr(entry);
       continue;
     }
+
+    checkedKeys.add(issueKey);
 
     logger.info(`Checking if ${issueKey} exists in Jira...`);
     const issueKeyExistsInJira = await checkIfIssueKeyExists(issueKey);

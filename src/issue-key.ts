@@ -39,8 +39,10 @@ export async function getIssueKey(
 }
 
 export const getIssueDescription = async (
-  timeEntryFullDescription: string
+  timeEntryFullDescription: string | null
 ): Promise<string> => {
+  if (!timeEntryFullDescription) return "";
+
   const issueKey = extractIssueKeyFromDescription(timeEntryFullDescription);
 
   if (!issueKey) {
@@ -81,7 +83,13 @@ export const validateIssueKey = (issueKey: IssueKey): boolean => {
   return ISSUE_KEY_REGEX.test(issueKey);
 };
 
-const extractIssueKeyFromDescription = (description: string): IssueKey => {
+const extractIssueKeyFromDescription = (
+  description: string | null
+): IssueKey => {
+  if (!description) {
+    return null;
+  }
+
   const issueKeyMatch = description.match(ISSUE_KEY_REGEX);
 
   if (!issueKeyMatch) {

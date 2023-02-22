@@ -47,10 +47,13 @@ export const fetchTogglCurrentTimer = async () => {
   }
 };
 
-export const stopTogglTimer = async (timeEntryId: number) => {
+export const stopTogglTimer = async (
+  workspaceId: number,
+  timeEntryId: number
+) => {
   try {
-    const res = await axios.put(
-      `${TOGGL_API_BASE_URL}/me/time_entries/${timeEntryId}`,
+    const res = await axios.patch(
+      `${TOGGL_API_BASE_URL}/workspaces/${workspaceId}/time_entries/${timeEntryId}/stop`,
       {
         stop: new Date().toISOString(),
       },
@@ -72,7 +75,8 @@ export const mergeDuplicateTogglTimeEntries = (entries: TogglTimeEntry[]) => {
   const entriesMap = new Map<string, TogglTimeEntry>();
 
   entries.forEach((entry) => {
-    const key = entry.description;
+    const key = entry.description as string;
+
     if (entriesMap.has(key)) {
       entriesMap.get(key)!.duration += entry.duration;
     } else {
