@@ -81,6 +81,7 @@ You will have to enter api credentials again.
 
 ## Todos
 
+- [ ] Set project default account on synced worklog
 - [ ] Check if issue keys exists in Jira and prompt for correction if it doesn't
 - [ ] Whitelist of issue keys to skip rounding, for example ABC-\*
 - [ ] Whitelist of issue keys to auto round
@@ -88,6 +89,7 @@ You will have to enter api credentials again.
 - [ ] Command for deleting entries from Tempo by day
 - [ ] Error handling if post to tempo fails
 - [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
+- [x] Replace temp *any* types
 - [x] Custom rounding intervals
 - [x] Automatic rounding option by margin
 - [x] Better config file handling
