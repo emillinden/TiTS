@@ -12,6 +12,10 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 - Can auto round to nearest interval at specified thresholds.
 - Supports black- or whitelist for auto rounding or skipping for certain projects.
 
+## Limitations
+
+- Currently doesn't set the `account` field in Tempo. If your company is using it you'll have to add it manually afterwards for the time being.
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/en/) must be installed on your machine.
@@ -65,6 +69,7 @@ $ tits sync -d yesterday
 The first time you run the sync command you will be prompted for Toggl/Tempo credentials if you haven't already entered them.
 
 ### Set config values
+
 specify the config you want to set by writing `tits config --key value`.
 
 ```bash
@@ -95,7 +100,7 @@ $ tits config --reset
 - [x] Check if issue keys exists in Jira before starting sync
 - [x] Black/whitelist of project keys to skip rounding
 - [x] Replace autoRoundAt config with autoRoundUpAt and autoRoundDownAt
-- [x] Replace temp *any* types
+- [x] Replace temp _any_ types
 - [x] Custom rounding intervals
 - [x] Automatic rounding option by threshold
 - [x] Better config file handling
