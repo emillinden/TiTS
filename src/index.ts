@@ -1,32 +1,26 @@
 #! /usr/bin/env node
-
 const yargs = require("yargs");
 const chalk = require("chalk");
+import { Argv } from "yargs";
 import axios from "axios";
 import commandConfig from "./command-config";
 import commandSync from "./command-sync";
 import { createConfigFileIfNotExists } from "./config";
-import { FixMeLater } from "./types";
 
 async function main() {
   init();
 
   const argv = yargs
-    .command(
-      "sync",
-      "Sync time entries from Toggl to Tempo",
-      (yargs: FixMeLater) => {
-        yargs.option("date", {
-          alias: "d",
-          description: "The date to sync time entries for (yyyy-mm-dd format)",
-          type: "string",
-          default: "today",
-        });
-      }
-    )
-    .command("config", "Save Toggl and Tempo API keys", (yargs: FixMeLater) => {
+    .command("sync", "Sync time entries from Toggl to Tempo", (yargs: Argv) => {
+      yargs.option("date", {
+        alias: "d",
+        description: "The date to sync time entries for (yyyy-mm-dd format)",
+        type: "string",
+        default: "today",
+      });
+    })
+    .command("config", "Set API keys and other settings", (yargs: Argv) => {
       yargs
-
         .option("toggl", {
           alias: "t",
           description: "Toggl API key",
@@ -38,19 +32,47 @@ async function main() {
           type: "string",
         })
         .option("tempo-author", {
-          alias: "i",
+          alias: "a",
           description: "Tempo Author Account ID",
           type: "string",
         })
-        .option("round-to", {
+        .option("rounding", {
           alias: "r",
-          description: "Round time entries to the nearest X minutes",
+          description: "Enable or disable rounding (true/false)",
+          type: "string",
+        })
+        .option("round-to", {
+          alias: "o",
+          description: "Interval in minutes to round time entries to",
           type: "number",
         })
-        .option("auto-round-at", {
-          alias: "a",
-          description: "Auto-round time entries X minutes away from round-to",
+        .option("round-up-at", {
+          alias: "u",
+          description: "Threshold in minutes to round up time entries",
           type: "number",
+        })
+        .option("round-down-at", {
+          alias: "d",
+          description: "Threshold in minutes to round down time entries",
+          type: "number",
+        })
+        .option("blacklist", {
+          alias: "b",
+          description:
+            "Toggle project key(s) (i.e. 'DEV' for issue key 'DEV-1') to skip rounding for when rounding strategy is 'blacklist'. Separate multiple values with commas.",
+          type: "string",
+        })
+        .option("whitelist", {
+          alias: "w",
+          description:
+            "Toggle project key(s) (i.e. 'DEV' for issue key 'DEV-1') to round when rounding strategy is 'whitelist'. Separate multiple values with commas.",
+          type: "string",
+        })
+        .option("strategy", {
+          alias: "s",
+          description:
+            "The rounding strategy to use. Can be 'whitelist', 'blacklist', 'all' or 'none'. If 'whitelist', only projects with keys in the whitelist will be rounded. If 'blacklist', projects with keys in the blacklist will not be rounded. If 'all', all projects will be rounded. If 'none', no projects will be rounded. Defaults to 'blacklist'.",
+          type: "string",
         })
         .option("list", {
           alias: "l",

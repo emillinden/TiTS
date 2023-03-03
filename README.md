@@ -8,7 +8,9 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 - Tries to find an issue key suffix in the description, but prompts you for one if not found.
 - Handles one day at a time, with the option to use custom dates.
 - Group identical issue descriptions into one combined time entry.
-- Asks if you want to round to 15 minute intervals (value can be changed).
+- Asks if you want to round to ~~15~~ 5 minute intervals (value can be changed).
+- Can auto round to nearest interval at specified thresholds.
+- Supports black- or whitelist for auto rounding or skipping for certain projects.
 
 ## Prerequisites
 
@@ -63,10 +65,13 @@ $ tits sync -d yesterday
 The first time you run the sync command you will be prompted for Toggl/Tempo credentials if you haven't already entered them.
 
 ### Set config values
+specify the config you want to set by writing `tits config --key value`.
 
 ```bash
-# Example
-$ tits config --key value
+# Examples
+$ tits config --round-to 30 # Sets the rounding interval to 30 minutes
+$ tits config --strategy blacklist # Sets the rounding strategy to blacklist
+$ tits config --blacklist DEV,ADMIN # Toggle "DEV" and "ADMIN" project keys in the blacklist
 ```
 
 See `tits config --help` for available configurations.
@@ -77,20 +82,21 @@ To reset the config file, use:
 $ tits config --reset
 ```
 
-You will have to enter api credentials again.
+**Warning!** You will have to enter api credentials again.
 
 ## Todos
 
-- [ ] Set project default account on synced worklog
-- [ ] Check if issue keys exists in Jira and prompt for correction if it doesn't
-- [ ] Whitelist of issue keys to skip rounding, for example ABC-\*
-- [ ] Whitelist of issue keys to auto round
+- [ ] Set account to project default on worklogs
+- [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
+- [ ] Prompt user for correction if issue key doesn't exist in Jira
 - [ ] Try to get issue key from Toggl project name and tag (in that order) if not found in description
 - [ ] Command for deleting entries from Tempo by day
 - [ ] Error handling if post to tempo fails
-- [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
+- [x] Check if issue keys exists in Jira before starting sync
+- [x] Black/whitelist of project keys to skip rounding
+- [x] Replace autoRoundAt config with autoRoundUpAt and autoRoundDownAt
 - [x] Replace temp *any* types
 - [x] Custom rounding intervals
-- [x] Automatic rounding option by margin
+- [x] Automatic rounding option by threshold
 - [x] Better config file handling
-- [x] Prompt user to stop Toggl Timer if one is currently running. Exit if declined
+- [x] Prompt user to stop Toggl Timer if one is currently running.

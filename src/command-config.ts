@@ -1,12 +1,27 @@
 const chalk = require("chalk");
-import { openConfig, resetConfig, setConfig } from "./config";
+import { getConfig, openConfig, resetConfig, setConfig } from "./config";
 import { logger } from "./logger";
-import { FixMeLater } from "./types";
 
-const commandConfig = async (argv: FixMeLater) => {
+type ConfigCommandArgs = {
+  reset: string;
+  list: string;
+  toggl: string;
+  tempo: string;
+  tempoAuthor: string;
+  rounding: string;
+  roundTo: number;
+  autoRoundAt: number;
+  roundUpAt: number;
+  roundDownAt: number;
+  blacklist: string;
+  whitelist: string;
+  strategy: string;
+};
+
+const commandConfig = async (argv: ConfigCommandArgs) => {
   // Reset config
   if (argv.reset) {
-    await commandConfigReset(argv);
+    await commandConfigReset();
     return;
   }
 
@@ -40,25 +55,135 @@ const commandConfig = async (argv: FixMeLater) => {
     logger.info(chalk.green("Tempo Author Account ID saved successfully."));
   }
 
+  if (argv.rounding) {
+    const roundingEnabled =
+      argv.rounding === "true"
+        ? true
+        : argv.rounding === "false"
+        ? false
+        : null;
+    if (typeof roundingEnabled === "boolean") {
+      setConfig("roundingEnabled", roundingEnabled);
+      if (roundingEnabled) {
+        logger.info(chalk.green("Rounding enabled."));
+      } else {
+        logger.info(chalk.red("Rounding disabled."));
+      }
+    } else {
+      logger.error(chalk.red("Invalid value - must be true or false."));
+    }
+  }
+
   if (argv.roundTo) {
-    setConfig("roundToSeconds", argv.roundTo * 60);
+    setConfig("roundTo", argv.roundTo);
     logger.info(chalk.green(`Rounding set to ${argv.roundTo} minutes.`));
   }
 
-  if (argv.autoRoundAt) {
-    setConfig("autoRoundAtSeconds", argv.autoRoundAt * 60);
+  if (argv.roundUpAt) {
+    setConfig("roundUpThreshold", argv.roundUpAt);
     logger.info(
-      chalk.green(`Auto-rounding set to ${argv.autoRoundAt} minutes.`)
+      chalk.green(`Auto-rounding up set to ${argv.roundUpAt} minutes.`)
     );
+  }
+
+  
+  if (argv.roundDownAt) {
+    setConfig("roundDownThreshold", argv.roundDownAt);
+    logger.info(
+      chalk.green(`Auto-rounding down set to ${argv.roundDownAt} minutes.`)
+    );
+  }
+
+  // TODO: Should probably be a func for both black- and whitelist… someday
+  if (argv.blacklist) {
+    const list = argv.blacklist.split(",");
+
+    for (let str of list) {
+      str = str.toUpperCase().trim();
+
+      if (/^[A-Z]+$/.test(str)) {
+        const currentBlacklist =
+          (getConfig("roundProjectBlacklist") as string[]) || [];
+
+        const exists = currentBlacklist.includes(str);
+        const newBlacklist = exists
+          ? currentBlacklist.filter((item) => item !== str)
+          : [...currentBlacklist, str];
+
+        setConfig("roundProjectBlacklist", newBlacklist);
+        logger.info(
+          exists
+            ? chalk.red("✕ ") + chalk.redBright(`${str} removed from blacklist`)
+            : chalk.green("✓ ") + chalk.greenBright(`${str} added to blacklist`)
+        );
+      } else {
+        logger.error(
+          chalk.red(
+            `Invalid value "${str}" - must be a string containing only letters.`
+          )
+        );
+      }
+    }
+
+    logger.info(`Current blacklist: ${getConfig("roundProjectBlacklist")}`);
+  }
+
+  if (argv.whitelist) {
+    const list = argv.whitelist.split(",");
+
+    for (let str of list) {
+      str = str.toUpperCase().trim();
+
+      if (/^[A-Z]+$/.test(str)) {
+        const currentWhitelist =
+          (getConfig("roundProjectWhitelist") as string[]) || [];
+
+        const exists = currentWhitelist.includes(str);
+        const newWhitelist = exists
+          ? currentWhitelist.filter((item) => item !== str)
+          : [...currentWhitelist, str];
+
+        setConfig("roundProjectWhitelist", newWhitelist);
+        logger.info(
+          exists
+            ? chalk.red("✕ ") + chalk.redBright(`${str} removed from whitelist`)
+            : chalk.green("✓ ") + chalk.greenBright(`${str} added to whitelist`)
+        );
+      } else {
+        logger.error(
+          chalk.red(
+            `Invalid value "${str}" - must be a string containing only letters.`
+          )
+        );
+      }
+    }
+
+    logger.info(`Current whitelist: ${getConfig("roundProjectWhitelist")}`);
+  }
+
+  if (argv.strategy) {
+    const allowedStrategies = ["blacklist", "whitelist", "all", "none"];
+    if (allowedStrategies.includes(argv.strategy)) {
+      setConfig("roundProjectStrategy", argv.strategy);
+      logger.info(chalk.green(`Rounding strategy set to ${argv.strategy}.`));
+    } else {
+      logger.error(
+        chalk.red(
+          "Invalid value - must be 'blacklist', 'whitelist', 'all' or 'none'."
+        )
+      );
+    }
   }
 };
 
-const commandConfigReset = async (argv: FixMeLater) => {
+const commandConfigReset = async () => {
   try {
     await resetConfig();
-    logger.info(chalk.green("Configurations have been deleted successfully."));
-  } catch (error: FixMeLater) {
-    logger.error("Error deleting API keys:", error.message);
+    logger.info(chalk.green("All configurations have been reset."));
+  } catch (error: any) {
+    logger.error(
+      chalk.red("Error reseting configuration file: ", error.message)
+    );
   }
 };
 

@@ -91,7 +91,7 @@ export interface TempoWorklog {
   };
   attributes: {
     self: string;
-    values: FixMeLater[];
+    values: any[];
   };
 }
 
@@ -162,5 +162,3 @@ export interface JiraIssue {
 }
 
 export type IssueKey = string | null;
-
-export type FixMeLater = any;

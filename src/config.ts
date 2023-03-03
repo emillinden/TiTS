@@ -7,9 +7,14 @@ type Config =
   | "togglApiToken"
   | "tempoApiToken"
   | "tempoAuthorAccountId"
-  | "roundToSeconds"
-  | "autoRoundAtSeconds";
-type ConfigType = string | number | boolean;
+  | "roundingEnabled"
+  | "roundProjectStrategy"
+  | "roundProjectBlacklist"
+  | "roundProjectWhitelist"
+  | "roundTo"
+  | "roundUpThreshold"
+  | "roundDownThreshold";
+type ConfigType = string | number | boolean | string[];
 type ConfigObject = {
   [key in Config]?: ConfigType;
 };
@@ -23,7 +28,18 @@ export const openConfig = (): ConfigObject => {
 };
 
 export const resetConfig = (): void => {
-  saveConfig({});
+  saveConfig({
+    togglApiToken: "",
+    tempoApiToken: "",
+    tempoAuthorAccountId: "",
+    roundingEnabled: true,
+    roundProjectStrategy: "blacklist",
+    roundProjectBlacklist: [],
+    roundProjectWhitelist: [],
+    roundTo: 5,
+    roundUpThreshold: 1,
+    roundDownThreshold: 1,
+  });
 };
 
 export const createConfigFileIfNotExists = (): void => {
@@ -41,4 +57,18 @@ export const setConfig = (key: Config, value: ConfigType): void => {
 export const getConfig = (key: Config): ConfigType | undefined => {
   const config = openConfig();
   return config[key];
+};
+
+export const getRoundingConfig = () => {
+  // Defaults are set in file on init/reset since 1.2.0, keep them here for backwards compatibility
+  // Some defaults are changed in 1.2.0 as well
+  const enabled = (getConfig("roundingEnabled") as boolean) || true;
+  const interval = (getConfig("roundTo") as number) || 15;
+  const upper = (getConfig("roundUpThreshold") as number) || 1;
+  const lower = (getConfig("roundDownThreshold") as number) || 1;
+  const blacklist = (getConfig("roundProjectBlacklist") as string[]) || [];
+  const whitelist = (getConfig("roundProjectWhitelist") as string[]) || [];
+  const strategy = (getConfig("roundProjectStrategy") as string) || "blacklist";
+
+  return { enabled, interval, upper, lower, blacklist, whitelist, strategy };
 };

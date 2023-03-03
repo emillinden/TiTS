@@ -1,13 +1,13 @@
-import { TimeEntry } from "./types";
-import * as readline from "readline";
 import chalk from "chalk";
+import * as readline from "readline";
 import { logger } from "./logger";
+import { TimeEntry } from "./types";
 
 export const sumTimeSpent = (entries: TimeEntry[]): number => {
   return entries.reduce((sum, entry) => sum + entry.timeSpent, 0);
 };
 
-export const formatTimeSpent = (seconds: number): string => {
+export const formatTime = (seconds: number): string => {
   const { h, m, s } = {
     h: Math.floor(seconds / 3600),
     m: Math.floor(seconds / 60) % 60,
@@ -18,7 +18,7 @@ export const formatTimeSpent = (seconds: number): string => {
     s > 0 ? `${s}s` : ""
   }`.trim();
 
-  return timeString;
+  return timeString || "0s";
 };
 
 /**
