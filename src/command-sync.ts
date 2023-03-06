@@ -67,6 +67,7 @@ const commandSync = async (argv: SyncCommandArgs) => {
   interval = interval * 60;
   thresholdUpper = thresholdUpper * 60;
   thresholdLower = thresholdLower * 60;
+  let differenceAfterRounding = 0;
 
   // POST time entries to Tempo
   for (const entry of merged) {
@@ -171,6 +172,8 @@ const commandSync = async (argv: SyncCommandArgs) => {
 
       duration = cmdFloorToNearestMinute(duration);
 
+      differenceAfterRounding += duration - entry.duration;
+
       // Skip if time spent is 0
       if (duration <= 0) {
         logger.error(`Skipping ${nicename} - No time spent`);
@@ -218,6 +221,16 @@ const commandSync = async (argv: SyncCommandArgs) => {
       )} synced to Tempo ( . Y . )`
     )
   );
+
+  if (differenceAfterRounding !== 0) {
+    logger.info(
+      chalk.greenBright(
+        `Rounded ${differenceAfterRounding > 0 ? "up" : "down"} by ${formatTime(
+          Math.abs(differenceAfterRounding)
+        )} in total`
+      )
+    );
+  }
 };
 
 const cmdCheckConfig = async () => {

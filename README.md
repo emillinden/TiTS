@@ -68,15 +68,15 @@ $ tits sync -d yesterday
 
 The first time you run the sync command you will be prompted for Toggl/Tempo credentials if you haven't already entered them.
 
-### Set config values
+## Configuration
 
-specify the config you want to set by writing `tits config --key value`.
+Specify the config you want to set by writing `tits config --key value`.
 
 ```bash
 # Examples
 $ tits config --round-to 30 # Sets the rounding interval to 30 minutes
 $ tits config --strategy blacklist # Sets the rounding strategy to blacklist
-$ tits config --blacklist DEV,ADMIN # Toggle "DEV" and "ADMIN" project keys in the blacklist
+$ tits config --blacklist DEV,ADMIN # Toggle "DEV" and "ADMIN" keys in the blacklist
 ```
 
 See `tits config --help` for available configurations.
@@ -96,7 +96,9 @@ $ tits config --reset
 - [ ] Prompt user for correction if issue key doesn't exist in Jira
 - [ ] Try to get issue key from Toggl project name and tag (in that order) if not found in description
 - [ ] Command for deleting entries from Tempo by day
+- [ ] Handle failing API keys
 - [ ] Error handling if post to tempo fails
+- [ ] `setup` command for guiding user through setting up config values
 - [x] Check if issue keys exists in Jira before starting sync
 - [x] Black/whitelist of project keys to skip rounding
 - [x] Replace autoRoundAt config with autoRoundUpAt and autoRoundDownAt

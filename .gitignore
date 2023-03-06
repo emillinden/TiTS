@@ -4,6 +4,9 @@ user-config.json
 # Mac OS
 .DS_Store
 
+# VSCode
+.vscode
+
 # Logs
 logs
 *.log
