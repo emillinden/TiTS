@@ -2,6 +2,8 @@
 
 TiTS is a Command Line Interface (CLI) written in TypeScript that helps you manage your time entries by fetching them from Toggl and adding them to Tempo via Tempo's API.
 
+![](https://s11.gifyu.com/images/S15ve.gif)
+
 ## Features
 
 - Fetch time entries from Toggl API and add them to Tempo via Tempo's API.
@@ -26,26 +28,26 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 Clone the repository
 
 ```bash
-$ git clone git@github.com:emillinden/TiTS.git dir-name
+git clone git@github.com:emillinden/TiTS.git dir-name
 ```
 
 Cd into the directory and install npm
 
 ```bash
-$ cd dir-name
-$ npm install
+cd dir-name
+npm install
 ```
 
 Build the project
 
 ```bash
-$ npm run build
+npm run build
 ```
 
 Install TiTS globally
 
 ```bash
-$ npm install -g .
+npm install -g .
 ```
 
 ## Usage
@@ -57,13 +59,13 @@ Run `tits` followed by a command and arguments (optional).
 Use the `sync` command. Can be followed by `-d` `(--date)` arg which takes a date, i.e. `YYYY-MM-DD`.
 
 ```bash
-$ tits sync
+tits sync
 ```
 
 You can also use `today` and `yesterday`.
 
 ```bash
-$ tits sync -d yesterday
+tits sync -d yesterday
 ```
 
 The first time you run the sync command you will be prompted for Toggl/Tempo credentials if you haven't already entered them.
@@ -84,7 +86,7 @@ See `tits config --help` for available configurations.
 To reset the config file, use:
 
 ```bash
-$ tits config --reset
+tits config --reset
 ```
 
 **Warning!** You will have to enter api credentials again.
