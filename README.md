@@ -52,6 +52,9 @@ npm install -g .
 
 ## Usage
 
+> For matching against Jira issues your Toggl entries need to be in the following format: `KEY-123 Description`.
+> For example `DEV-1337 Daily standup` where `DEV` is the project key, `123` is the issue number and `Daily standup` is the description which will be added to the Tempo worklog.
+
 Run `tits` followed by a command and arguments (optional).
 
 ### Sync todays entries from Toggl to Tempo
@@ -91,21 +94,4 @@ tits config --reset
 
 **Warning!** You will have to enter api credentials again.
 
-## Todos
-
-- [ ] Set account to project default on worklogs
-- [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
-- [ ] Prompt user for correction if issue key doesn't exist in Jira
-- [ ] Try to get issue key from Toggl project name and tag (in that order) if not found in description
-- [ ] Command for deleting entries from Tempo by day
-- [ ] Handle failing API keys
-- [ ] Error handling if post to tempo fails
-- [ ] `setup` command for guiding user through setting up config values
-- [x] Check if issue keys exists in Jira before starting sync
-- [x] Black/whitelist of project keys to skip rounding
-- [x] Replace autoRoundAt config with autoRoundUpAt and autoRoundDownAt
-- [x] Replace temp _any_ types
-- [x] Custom rounding intervals
-- [x] Automatic rounding option by threshold
-- [x] Better config file handling
-- [x] Prompt user to stop Toggl Timer if one is currently running.
+Hope you'll save some time!
