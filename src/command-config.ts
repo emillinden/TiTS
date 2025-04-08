@@ -13,9 +13,12 @@ type ConfigCommandArgs = {
   autoRoundAt: number;
   roundUpAt: number;
   roundDownAt: number;
+  minEntryTime: number;
   blacklist: string;
   whitelist: string;
   strategy: string;
+  useAccounts: string;
+  accountKey: string;
 };
 
 const commandConfig = async (argv: ConfigCommandArgs) => {
@@ -86,11 +89,17 @@ const commandConfig = async (argv: ConfigCommandArgs) => {
     );
   }
 
-  
   if (argv.roundDownAt) {
     setConfig("roundDownThreshold", argv.roundDownAt);
     logger.info(
       chalk.green(`Auto-rounding down set to ${argv.roundDownAt} minutes.`)
+    );
+  }
+
+  if (argv.minEntryTime) {
+    setConfig("minEntryTime", argv.minEntryTime);
+    logger.info(
+      chalk.green(`Minimum entry time set to ${argv.minEntryTime} minutes.`)
     );
   }
 
@@ -173,6 +182,30 @@ const commandConfig = async (argv: ConfigCommandArgs) => {
         )
       );
     }
+  }
+
+  if (argv.useAccounts) {
+    const enableAccounts =
+      argv.useAccounts === "true"
+        ? true
+        : argv.useAccounts === "false"
+        ? false
+        : null;
+    if (typeof enableAccounts === "boolean") {
+      setConfig("useAccounts", enableAccounts);
+      if (enableAccounts) {
+        logger.info(chalk.green("Using accounts enabled."));
+      } else {
+        logger.info(chalk.red("Using accounts disabled."));
+      }
+    } else {
+      logger.error(chalk.red("Invalid value - must be true or false."));
+    }
+  }
+
+  if (argv.accountKey) {
+    setConfig("accountKey", argv.accountKey);
+    logger.info(chalk.green("Account key saved successfully."));
   }
 };
 

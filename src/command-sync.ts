@@ -3,9 +3,17 @@ import moment from "moment";
 import ascii from "./ascii";
 import { getConfig, getRoundingConfig, setConfig } from "./config";
 import { parseDate } from "./date";
-import { getIssueDescription, getIssueKey } from "./issue-key";
+import {
+  getIssueDescription,
+  getIssueKey,
+  issueKeyToProjectKey,
+} from "./issue-key";
 import { logger } from "./logger";
-import { checkIfIssueKeyExists, postTempoWorklog } from "./tempo";
+import {
+  checkIfIssueKeyExists,
+  getTempoAccounts,
+  postTempoWorklog,
+} from "./tempo";
 import {
   fetchTogglCurrentTimer,
   fetchTogglTimeEntries,
@@ -31,7 +39,10 @@ const commandSync = async (argv: SyncCommandArgs) => {
   }
 
   await cmdCheckConfig();
-  await cmdCheckTogglRunningTimer();
+
+  if (moment().isSame(date, "day")) {
+    await cmdCheckTogglRunningTimer();
+  }
 
   console.log("");
 
@@ -62,6 +73,7 @@ const commandSync = async (argv: SyncCommandArgs) => {
     strategy: roundingStrategy,
     blacklist: roundingBlacklist,
     whitelist: roundingWhitelist,
+    minEntryTime: roundingMinEntryTime,
   } = getRoundingConfig();
 
   interval = interval * 60;
@@ -89,27 +101,33 @@ const commandSync = async (argv: SyncCommandArgs) => {
         continue;
       }
 
-      const projectKey = issueKey.split("-")[0];
+      const projectKey = issueKeyToProjectKey(issueKey)!;
       const nicename = `${issueKey}: ${description}`;
       let duration = entry.duration;
       let remainder = duration % interval;
       let shouldRound;
+      let shouldRoundUpMinEntryTime;
 
       switch (roundingStrategy) {
         case "all":
           shouldRound = true;
+          shouldRoundUpMinEntryTime = true;
           break;
         case "none":
           shouldRound = false;
+          shouldRoundUpMinEntryTime = false;
           break;
         case "blacklist":
           shouldRound = !roundingBlacklist.includes(projectKey);
+          shouldRoundUpMinEntryTime = !roundingBlacklist.includes(projectKey);
           break;
         case "whitelist":
           shouldRound = roundingWhitelist.includes(projectKey);
+          shouldRoundUpMinEntryTime = roundingWhitelist.includes(projectKey);
           break;
         default:
           shouldRound = false;
+          shouldRoundUpMinEntryTime = false;
       }
 
       // Automatic rounding
@@ -172,12 +190,67 @@ const commandSync = async (argv: SyncCommandArgs) => {
 
       duration = cmdFloorToNearestMinute(duration);
 
+      if (shouldRoundUpMinEntryTime) {
+        duration = cmdCeilToMinEntryTime(duration, roundingMinEntryTime);
+      }
+
       differenceAfterRounding += duration - entry.duration;
 
       // Skip if time spent is 0
       if (duration <= 0) {
         logger.error(`Skipping ${nicename} - No time spent`);
         continue;
+      }
+
+      // Account
+      const useAccount = getConfig("useAccounts");
+      const configAccountKey = getConfig("accountKey") as string;
+      let accountKey = "";
+      if (useAccount && configAccountKey) {
+        const projectAccountMap =
+          (getConfig("tempoProjectAccountMap") as Record<string, string>) || {};
+        accountKey = projectAccountMap[projectKey];
+
+        if (!accountKey) {
+          accountKey = await prompt(
+            `Enter Tempo account key for ${projectKey}: `,
+            (input: string) => input.length > 0,
+            `Invalid value, try again. Enter Tempo account key for ${projectKey}: `,
+            ""
+          );
+
+          const tempoAccounts = await getTempoAccounts();
+          const accountExists = tempoAccounts.results.some(
+            (account) => account.key === accountKey
+          );
+
+          if (!accountExists) {
+            logger.error(
+              `Account key ${accountKey} does not exist in Tempo. Skipping ${nicename}`
+            );
+            continue;
+          }
+
+          const saveAccountKeyAnswer = await prompt(
+            `Save account key ${accountKey} to config? (y/n) `,
+            (input: string) => input === "y" || input === "n" || input === "",
+            "Invalid input, please enter y, n or empty to skip",
+            "n",
+            true
+          );
+
+          if (saveAccountKeyAnswer === "y") {
+            projectAccountMap[projectKey] = accountKey;
+            setConfig("tempoProjectAccountMap", projectAccountMap);
+
+            logger.info(
+              chalk.green("✓ ") +
+                chalk.greenBright(
+                  `Account key ${accountKey} saved to config for ${projectKey}`
+                )
+            );
+          }
+        }
       }
 
       const tempoTimeEntry: TempoWorklogPostArgs = {
@@ -188,6 +261,10 @@ const commandSync = async (argv: SyncCommandArgs) => {
         startTime: moment(entry.start).format("HH:mm:ss"),
         authorAccountId: getConfig("tempoAuthorAccountId") as string,
       };
+
+      if (useAccount && configAccountKey) {
+        tempoTimeEntry.attributes = [{ key: configAccountKey, value: accountKey }];
+      }
 
       const tempoResponse = await postTempoWorklog(tempoTimeEntry);
 
@@ -421,6 +498,20 @@ const cmdFloorToNearestMinute = (duration: number) => {
     duration = Math.floor(duration / 60) * 60;
     logger.info(
       `Floored to nearest minute from ${formatTime(
+        oldIssueTimeSpendSeconds
+      )} to ${formatTime(duration)}`
+    );
+  }
+
+  return duration;
+};
+
+const cmdCeilToMinEntryTime = (duration: number, minTime: number) => {
+  if (duration < minTime * 60) {
+    const oldIssueTimeSpendSeconds = duration;
+    duration = minTime * 60;
+    logger.info(
+      `Rounded up to min billable time from ${formatTime(
         oldIssueTimeSpendSeconds
       )} to ${formatTime(duration)}`
     );

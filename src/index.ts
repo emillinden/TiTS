@@ -1,8 +1,8 @@
 #! /usr/bin/env node
 const yargs = require("yargs");
 const chalk = require("chalk");
-import { Argv } from "yargs";
 import axios from "axios";
+import { Argv } from "yargs";
 import commandConfig from "./command-config";
 import commandSync from "./command-sync";
 import { createConfigFileIfNotExists } from "./config";
@@ -56,6 +56,12 @@ async function main() {
           description: "Threshold in minutes to round down time entries",
           type: "number",
         })
+        .option("min-entry-time", {
+          alias: "m",
+          description:
+            "Minimum time for a time entry. For example, if set to 15, any time entry less than 15 minutes will be rounded to 15 minutes. Only affects entries that fall into the rounding category (see the `strategy` option).",
+          type: "number",
+        })
         .option("blacklist", {
           alias: "b",
           description:
@@ -72,6 +78,16 @@ async function main() {
           alias: "s",
           description:
             "The rounding strategy to use. Can be 'whitelist', 'blacklist', 'all' or 'none'. If 'whitelist', only projects with keys in the whitelist will be rounded. If 'blacklist', projects with keys in the blacklist will not be rounded. If 'all', all projects will be rounded. If 'none', no projects will be rounded. Defaults to 'blacklist'.",
+          type: "string",
+        })
+        .option("useAccounts", {
+          alias: "c",
+          description: "Wether to use Tempo accounts or not",
+          type: "string",
+        })
+        .option("accountKey", {
+          alias: "k",
+          description: "The key for the account attribute",
           type: "string",
         })
         .option("list", {

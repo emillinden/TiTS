@@ -60,7 +60,7 @@ export interface TogglProjectArgs {
   projectId: number;
 }
 
-export interface TempoGetResponse {
+export interface TempoWorklogGetResponse {
   /** Current request url */
   self: string;
   metadata: TempoResponseMetadata;

@@ -7,14 +7,18 @@ type Config =
   | "togglApiToken"
   | "tempoApiToken"
   | "tempoAuthorAccountId"
+  | "tempoProjectAccountMap"
   | "roundingEnabled"
   | "roundProjectStrategy"
   | "roundProjectBlacklist"
   | "roundProjectWhitelist"
   | "roundTo"
   | "roundUpThreshold"
-  | "roundDownThreshold";
-type ConfigType = string | number | boolean | string[];
+  | "roundDownThreshold"
+  | "minEntryTime"
+  | "useAccounts"
+  | "accountKey";
+type ConfigType = string | number | boolean | string[] | Record<string, string>;
 type ConfigObject = {
   [key in Config]?: ConfigType;
 };
@@ -32,6 +36,7 @@ export const resetConfig = (): void => {
     togglApiToken: "",
     tempoApiToken: "",
     tempoAuthorAccountId: "",
+    tempoProjectAccountMap: {},
     roundingEnabled: true,
     roundProjectStrategy: "blacklist",
     roundProjectBlacklist: [],
@@ -39,6 +44,9 @@ export const resetConfig = (): void => {
     roundTo: 5,
     roundUpThreshold: 1,
     roundDownThreshold: 1,
+    minEntryTime: 0,
+    useAccounts: false,
+    accountKey: "",
   });
 };
 
@@ -56,7 +64,7 @@ export const setConfig = (key: Config, value: ConfigType): void => {
 
 export const getConfig = (key: Config): ConfigType | undefined => {
   const config = openConfig();
-  return config[key];
+  return config[key] || undefined;
 };
 
 export const getRoundingConfig = () => {
@@ -69,6 +77,16 @@ export const getRoundingConfig = () => {
   const blacklist = (getConfig("roundProjectBlacklist") as string[]) || [];
   const whitelist = (getConfig("roundProjectWhitelist") as string[]) || [];
   const strategy = (getConfig("roundProjectStrategy") as string) || "blacklist";
+  const minEntryTime = (getConfig("minEntryTime") as number) || 0;
 
-  return { enabled, interval, upper, lower, blacklist, whitelist, strategy };
+  return {
+    enabled,
+    interval,
+    upper,
+    lower,
+    blacklist,
+    whitelist,
+    strategy,
+    minEntryTime,
+  };
 };

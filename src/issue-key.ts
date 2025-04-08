@@ -54,7 +54,7 @@ export const getIssueDescription = async (
 
   // Remove leading characters that are not letters/numbers
   timeEntryFullDescription = timeEntryFullDescription
-    .replace(/^[^a-zA-Z0-9]+/, "")
+    .replace(/^[^a-zåäöA-ZÅÄÖ0-9]+/, "")
     .trim();
 
   if (!timeEntryFullDescription) {
@@ -81,6 +81,17 @@ export const validateIssueKey = (issueKey: IssueKey): boolean => {
   if (!issueKey) return false;
 
   return ISSUE_KEY_REGEX.test(issueKey);
+};
+
+/**
+ * Converts an issue key to project key
+ * @param issueKey The issue key to convert
+ * @returns The project key
+ */
+export const issueKeyToProjectKey = (issueKey: IssueKey): string | null => {
+  if (!issueKey) return null;
+
+  return issueKey.split("-")[0];
 };
 
 const extractIssueKeyFromDescription = (

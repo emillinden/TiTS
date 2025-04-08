@@ -12,10 +12,6 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 - Can auto round to nearest interval at specified thresholds.
 - Supports black- or whitelist for auto rounding or skipping for certain projects.
 
-## Limitations
-
-- Currently doesn't set the `account` field in Tempo. If your company is using it you'll have to add it manually afterwards for the time being.
-
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/en/) must be installed on your machine.
@@ -26,26 +22,26 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 Clone the repository
 
 ```bash
-$ git clone git@github.com:emillinden/TiTS.git dir-name
+git clone git@github.com:emillinden/TiTS.git dir-name
 ```
 
 Cd into the directory and install npm
 
 ```bash
-$ cd dir-name
-$ npm install
+cd dir-name
+npm install
 ```
 
 Build the project
 
 ```bash
-$ npm run build
+npm run build
 ```
 
 Install TiTS globally
 
 ```bash
-$ npm install -g .
+npm install -g .
 ```
 
 ## Usage
@@ -57,13 +53,13 @@ Run `tits` followed by a command and arguments (optional).
 Use the `sync` command. Can be followed by `-d` `(--date)` arg which takes a date, i.e. `YYYY-MM-DD`.
 
 ```bash
-$ tits sync
+tits sync
 ```
 
 You can also use `today` and `yesterday`.
 
 ```bash
-$ tits sync -d yesterday
+tits sync -d yesterday
 ```
 
 The first time you run the sync command you will be prompted for Toggl/Tempo credentials if you haven't already entered them.
@@ -77,6 +73,7 @@ Specify the config you want to set by writing `tits config --key value`.
 $ tits config --round-to 30 # Sets the rounding interval to 30 minutes
 $ tits config --strategy blacklist # Sets the rounding strategy to blacklist
 $ tits config --blacklist DEV,ADMIN # Toggle "DEV" and "ADMIN" keys in the blacklist
+$ tits config --min-entry-time 60 # Sets the minimum time entry time to 60 minutes
 ```
 
 See `tits config --help` for available configurations.
@@ -84,14 +81,13 @@ See `tits config --help` for available configurations.
 To reset the config file, use:
 
 ```bash
-$ tits config --reset
+tits config --reset
 ```
 
 **Warning!** You will have to enter api credentials again.
 
 ## Todos
 
-- [ ] Set account to project default on worklogs
 - [ ] Sync issues from Jira as Tempo projects (or tags) for easier issue logging
 - [ ] Prompt user for correction if issue key doesn't exist in Jira
 - [ ] Try to get issue key from Toggl project name and tag (in that order) if not found in description
@@ -99,6 +95,7 @@ $ tits config --reset
 - [ ] Handle failing API keys
 - [ ] Error handling if post to tempo fails
 - [ ] `setup` command for guiding user through setting up config values
+- [x] Set account to project default on worklogs
 - [x] Check if issue keys exists in Jira before starting sync
 - [x] Black/whitelist of project keys to skip rounding
 - [x] Replace autoRoundAt config with autoRoundUpAt and autoRoundDownAt

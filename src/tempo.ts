@@ -2,48 +2,28 @@ import axios from "axios";
 import { getConfig } from "./config";
 import { validateIssueKey } from "./issue-key";
 import {
-  TempoGetResponse,
   TempoPostResponse,
+  TempoWorklogGetResponse,
   TempoWorklogPostArgs,
-  TempoWorklogsGetArgs,
 } from "./types";
+import { TempoAccountGetResponse } from "./types/TempoAccountTypes";
 
-const TEMPO_API_BASE_URL = "https://api.tempo.io/core/3";
+const TEMPO_API_3_BASE_URL = "https://api.tempo.io/core/3";
+const TEMPO_API_4_BASE_URL = "https://api.tempo.io/4";
+const TEMPO_API_HEADERS = {
+  Authorization: `Bearer ${getConfig("tempoApiToken")}`,
+  "Content-Type": "application/json",
+};
 
 export const postTempoWorklog = async (
   tempoTimeEntry: TempoWorklogPostArgs
 ): Promise<TempoPostResponse> => {
   try {
     const res = await axios.post<TempoPostResponse>(
-      `${TEMPO_API_BASE_URL}/worklogs`,
+      `${TEMPO_API_3_BASE_URL}/worklogs`,
       tempoTimeEntry,
       {
-        headers: {
-          Authorization: `Bearer ${getConfig("tempoApiToken") as string}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    return res.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-};
-
-export const getTempoWorklogs = async (
-  tempWorklogArgs: TempoWorklogsGetArgs
-): Promise<TempoGetResponse> => {
-  try {
-    const res = await axios.get<TempoGetResponse>(
-      `${TEMPO_API_BASE_URL}/worklogs`,
-      {
-        params: tempWorklogArgs,
-        headers: {
-          Authorization: `Bearer ${getConfig("tempoApiToken") as string}`,
-          "Content-Type": "application/json",
-        },
+        headers: TEMPO_API_HEADERS,
       }
     );
 
@@ -56,16 +36,11 @@ export const getTempoWorklogs = async (
 
 export const getTempoWorklogByIssueKey = async (
   issueKey: string
-): Promise<TempoGetResponse> => {
+): Promise<TempoWorklogGetResponse> => {
   try {
-    const res = await axios.get<TempoGetResponse>(
-      `${TEMPO_API_BASE_URL}/worklogs/issue/${issueKey}`,
-      {
-        headers: {
-          Authorization: `Bearer ${getConfig("tempoApiToken") as string}`,
-          "Content-Type": "application/json",
-        },
-      }
+    const res = await axios.get<TempoWorklogGetResponse>(
+      `${TEMPO_API_3_BASE_URL}/worklogs/issue/${issueKey}`,
+      { headers: TEMPO_API_HEADERS }
     );
 
     return res.data;
@@ -83,8 +58,21 @@ export const checkIfIssueKeyExists = async (
   try {
     const res = await getTempoWorklogByIssueKey(issueKey);
 
-    if (res.self) return true;
-    return false;
+    return res.self ? true : false;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const getTempoAccounts = async (): Promise<TempoAccountGetResponse> => {
+  try {
+    const res = await axios.get<TempoAccountGetResponse>(
+      `${TEMPO_API_4_BASE_URL}/accounts?limit=5000`,
+      { headers: TEMPO_API_HEADERS }
+    );
+
+    return res.data;
   } catch (error) {
     console.log(error);
     throw error;
