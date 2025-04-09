@@ -96,6 +96,16 @@ $ tits config --min-entry-time 60 # Sets the minimum time entry time to 60 minut
 
 See `tits config --help` for available configurations.
 
+### Account attribute
+
+Some Tempo setups use an account key to define billing accounts.
+
+You can enable account attribute syncing by running `tits config --use-accounts true` and providing an account key by running `tits config --account-key YourAccountKey`.
+
+For each new project key (first part of the issue key) you're syncing to you'll be prompted for the corresponding account key, you will get the option to save the key for future synchronizations.
+
+### Reset config
+
 To reset the config file, use:
 
 ```bash
@@ -104,4 +114,4 @@ tits config --reset
 
 **Warning!** You will have to enter api credentials again.
 
-Hope you'll save some time!
+## Hope you'll save some time!
