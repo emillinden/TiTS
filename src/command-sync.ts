@@ -263,7 +263,9 @@ const commandSync = async (argv: SyncCommandArgs) => {
       };
 
       if (useAccount && configAccountKey) {
-        tempoTimeEntry.attributes = [{ key: configAccountKey, value: accountKey }];
+        tempoTimeEntry.attributes = [
+          { key: configAccountKey, value: accountKey },
+        ];
       }
 
       const tempoResponse = await postTempoWorklog(tempoTimeEntry);
@@ -340,6 +342,36 @@ const cmdCheckConfig = async () => {
         ""
       );
       setConfig("tempoAuthorAccountId", tempoAuthorAccountId);
+    }
+
+    if (!getConfig("jiraUrl")) {
+      const jiraUrl = await prompt(
+        "Enter Jira URL (e.g., https://your-domain.atlassian.net): ",
+        (input: string) => input.length > 0 && input.startsWith("http"),
+        "Invalid value, try again. Enter Jira URL (must start with http): ",
+        ""
+      );
+      setConfig("jiraUrl", jiraUrl);
+    }
+
+    if (!getConfig("jiraEmail")) {
+      const jiraEmail = await prompt(
+        "Enter your Atlassian account email: ",
+        (input: string) => input.length > 0 && input.includes("@"),
+        "Invalid value, try again. Enter your Atlassian account email: ",
+        ""
+      );
+      setConfig("jiraEmail", jiraEmail);
+    }
+
+    if (!getConfig("jiraApiToken")) {
+      const jiraApiToken = await prompt(
+        "Enter Jira API token: ",
+        (input: string) => input.length > 0,
+        "Invalid value, try again. Enter Jira API token: ",
+        ""
+      );
+      setConfig("jiraApiToken", jiraApiToken);
     }
   } catch (error) {
     console.error(error);

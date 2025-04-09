@@ -108,7 +108,8 @@ export interface TempoResponseMetadata {
 }
 
 export interface TempoWorklogPostArgs {
-  issueKey: string;
+  issueKey?: string;
+  issueId?: string;
   /** Author account ID obtained from Jira settings */
   authorAccountId: string;
   timeSpentSeconds: number;

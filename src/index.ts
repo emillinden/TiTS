@@ -36,6 +36,18 @@ async function main() {
           description: "Tempo Author Account ID",
           type: "string",
         })
+        .option("jira-url", {
+          description: "Jira URL (e.g., https://your-domain.atlassian.net)",
+          type: "string",
+        })
+        .option("jira-email", {
+          description: "Your Atlassian account email",
+          type: "string",
+        })
+        .option("jira-api-token", {
+          description: "Jira API token",
+          type: "string",
+        })
         .option("rounding", {
           alias: "r",
           description: "Enable or disable rounding (true/false)",
@@ -106,6 +118,34 @@ async function main() {
     .default("help").argv;
 
   const command = argv._[0];
+
+  // Map hyphenated command line args to camelCase for config
+  if (command === "config") {
+    if (argv["jira-url"]) {
+      argv.jiraUrl = argv["jira-url"];
+    }
+    if (argv["jira-email"]) {
+      argv.jiraEmail = argv["jira-email"];
+    }
+    if (argv["jira-api-token"]) {
+      argv.jiraApiToken = argv["jira-api-token"];
+    }
+    if (argv["tempo-author"]) {
+      argv.tempoAuthor = argv["tempo-author"];
+    }
+    if (argv["round-to"]) {
+      argv.roundTo = argv["round-to"];
+    }
+    if (argv["round-up-at"]) {
+      argv.roundUpAt = argv["round-up-at"];
+    }
+    if (argv["round-down-at"]) {
+      argv.roundDownAt = argv["round-down-at"];
+    }
+    if (argv["min-entry-time"]) {
+      argv.minEntryTime = argv["min-entry-time"];
+    }
+  }
 
   switch (command) {
     case "sync":

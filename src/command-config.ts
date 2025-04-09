@@ -19,6 +19,9 @@ type ConfigCommandArgs = {
   strategy: string;
   useAccounts: string;
   accountKey: string;
+  jiraUrl: string;
+  jiraEmail: string;
+  jiraApiToken: string;
 };
 
 const commandConfig = async (argv: ConfigCommandArgs) => {
@@ -56,6 +59,21 @@ const commandConfig = async (argv: ConfigCommandArgs) => {
   if (argv.tempoAuthor) {
     setConfig("tempoAuthorAccountId", argv.tempoAuthor);
     logger.info(chalk.green("Tempo Author Account ID saved successfully."));
+  }
+
+  if (argv.jiraUrl) {
+    setConfig("jiraUrl", argv.jiraUrl);
+    logger.info(chalk.green("Jira URL saved successfully."));
+  }
+
+  if (argv.jiraEmail) {
+    setConfig("jiraEmail", argv.jiraEmail);
+    logger.info(chalk.green("Jira email saved successfully."));
+  }
+
+  if (argv.jiraApiToken) {
+    setConfig("jiraApiToken", argv.jiraApiToken);
+    logger.info(chalk.green("Jira API token saved successfully."));
   }
 
   if (argv.rounding) {

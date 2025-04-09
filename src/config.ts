@@ -17,7 +17,10 @@ type Config =
   | "roundDownThreshold"
   | "minEntryTime"
   | "useAccounts"
-  | "accountKey";
+  | "accountKey"
+  | "jiraUrl"
+  | "jiraApiToken"
+  | "jiraEmail";
 type ConfigType = string | number | boolean | string[] | Record<string, string>;
 type ConfigObject = {
   [key in Config]?: ConfigType;
@@ -47,6 +50,9 @@ export const resetConfig = (): void => {
     minEntryTime: 0,
     useAccounts: false,
     accountKey: "",
+    jiraUrl: "",
+    jiraApiToken: "",
+    jiraEmail: "",
   });
 };
 
