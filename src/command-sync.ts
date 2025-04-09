@@ -42,29 +42,21 @@ const commandSync = async (argv: SyncCommandArgs) => {
 
   if (moment().isSame(date, "day")) {
     await cmdCheckTogglRunningTimer();
+    console.log("");
   }
-
-  console.log("");
 
   const entries = await cmdFetchTogglEntries(date);
   let merged = await cmdMergeTogglEntries(entries);
   merged = await cmdConfirmIssueKeysExist(merged);
 
   console.log("");
-
   logger.info(
     chalk.magenta(
-      `Starting posting ${pluralize(
-        merged.length,
-        "time entry",
-        "time entries"
-      )} to Tempo`
+      `Preparing ${pluralize(merged.length, "time entry", "time entries")}`
     )
   );
 
-  const synced: TempoWorklog[] = [];
-
-  // Rounding
+  // Get rounding configuration
   let {
     enabled: roundingEnabled,
     interval,
@@ -81,21 +73,28 @@ const commandSync = async (argv: SyncCommandArgs) => {
   thresholdLower = thresholdLower * 60;
   let differenceAfterRounding = 0;
 
-  // POST time entries to Tempo
+  // Define types for our entries
+  type TempoEntryWithMetadata = {
+    entry: TempoWorklogPostArgs;
+    nicename: string;
+    duration: number;
+  };
+
+  // Prepare time entries for Tempo
+  const tempoTimeEntries: TempoEntryWithMetadata[] = [];
+  const processingErrors: { error: any; description: string }[] = [];
+
   for (const entry of merged) {
     try {
-      console.log("");
+      logger.info(`Preparing ${entry.description}`);
 
-      logger.info(`Posting ${entry.description}`);
       const issueKey = await getIssueKey(entry);
-
       if (!issueKey) {
         logger.error(`Skipping ${entry.description} - no issue key`);
         continue;
       }
 
       const description = await getIssueDescription(entry.description);
-
       if (!description) {
         logger.error(`Skipping ${entry.description} - no issue description`);
         continue;
@@ -253,41 +252,97 @@ const commandSync = async (argv: SyncCommandArgs) => {
         }
       }
 
+      // At this point we know issueKey is not null
+      // Create the tempo entry object
       const tempoTimeEntry: TempoWorklogPostArgs = {
-        issueKey: issueKey,
-        description: description,
+        issueKey: issueKey!,
+        description,
         timeSpentSeconds: duration,
         startDate: moment(entry.start).format("YYYY-MM-DD"),
         startTime: moment(entry.start).format("HH:mm:ss"),
         authorAccountId: getConfig("tempoAuthorAccountId") as string,
       };
 
-      if (useAccount && configAccountKey) {
+      // Add attributes if needed
+      if (useAccount && configAccountKey && accountKey) {
         tempoTimeEntry.attributes = [
           { key: configAccountKey, value: accountKey },
         ];
       }
 
-      const tempoResponse = await postTempoWorklog(tempoTimeEntry);
-
-      if (!tempoResponse || !tempoResponse.tempoWorklogId) {
-        logger.error(chalk.red(`Failed to post ${nicename}`));
-        continue;
-      }
-
-      synced.push(tempoResponse);
-
-      // Done!
-      logger.info(
-        chalk.green("✓ ") +
-          chalk.greenBright(
-            `${nicename} (${formatTime(duration)}) posted to Tempo`
-          )
-      );
+      // Store entry with metadata for later processing
+      tempoTimeEntries.push({
+        entry: tempoTimeEntry,
+        nicename,
+        duration,
+      });
     } catch (error) {
-      logger.error(`Error syncing time entry: ${error}`);
+      processingErrors.push({
+        error,
+        description: entry.description ?? "Unknown description",
+      });
+      logger.error(`Error processing time entry: ${error}`);
+    } finally {
+      console.log("");
     }
   }
+
+  // POST all entries in parallel
+  logger.info(
+    chalk.magenta(
+      `Submitting ${pluralize(
+        tempoTimeEntries.length,
+        "time entry",
+        "time entries"
+      )} to Tempo`
+    )
+  );
+
+  const results = await Promise.allSettled(
+    tempoTimeEntries.map(({ entry, nicename }) =>
+      postTempoWorklog(entry)
+        .then((response) => ({ response, nicename, success: true } as const))
+        .catch((error) => ({ error, nicename, success: false } as const))
+    )
+  );
+
+  const synced: TempoWorklog[] = [];
+
+  // Process results
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      const { success, nicename } = result.value;
+
+      if (
+        success &&
+        "response" in result.value &&
+        result.value.response?.tempoWorklogId
+      ) {
+        synced.push(result.value.response);
+        logger.info(
+          chalk.green("✓ ") +
+            chalk.greenBright(
+              `${nicename} (${formatTime(
+                tempoTimeEntries[index].duration
+              )}) posted to Tempo`
+            )
+        );
+      } else {
+        logger.error(chalk.red(`Failed to post ${nicename}`));
+      }
+    } else {
+      logger.error(
+        chalk.red(
+          `Error posting ${tempoTimeEntries[index].nicename}: ${result.reason}`
+        )
+      );
+    }
+  });
+
+  // Report processing errors
+  processingErrors.forEach(({ error, description }) => {
+    logger.error(`Error processing entry "${description}": ${error}`);
+  });
 
   console.log("");
 
@@ -478,49 +533,96 @@ const cmdMergeTogglEntries = async (entries: TogglTimeEntry[]) => {
 };
 
 const cmdConfirmIssueKeysExist = async (entries: TogglTimeEntry[]) => {
-  const checked = new Set();
-  for (const entry of entries) {
-    const key = await getIssueKey(entry);
-    const remFromArr = (entry: TogglTimeEntry) =>
-      entries.splice(entries.indexOf(entry), 1);
+  // Get all unique issue keys first
+  const entriesWithKeyPromises = await Promise.all(
+    entries.map(async (entry) => {
+      const key = await getIssueKey(entry);
+      return { entry, key };
+    })
+  );
 
-    if (checked.has(key)) continue;
+  // Filter out entries with no issue key
+  const entriesWithKey = entriesWithKeyPromises.filter(
+    ({ key }) => key !== null
+  );
+  const entriesWithoutKey = entriesWithKeyPromises.filter(
+    ({ key }) => key === null
+  );
 
-    console.log("");
-
-    if (!key) {
-      logger.error(`Skipping ${entry.description} - no issue key`);
-      remFromArr(entry);
-      continue;
-    }
-
-    checked.add(key);
-
-    logger.info(`Checking if ${key} exists in Jira...`);
-    const issueKeyExistsInJira = await checkIfIssueKeyExists(key);
-
-    if (!issueKeyExistsInJira) {
-      logger.error(`Skipping ${entry.description} - issue key not found`);
-      remFromArr(entry);
-      continue;
-    }
-
-    logger.info(
-      chalk.green("✓ ") + chalk.greenBright(`Issue key ${key} exists in Jira`)
-    );
-
-    const issueDescription = await getIssueDescription(entry.description);
-
-    if (!issueDescription) {
-      logger.error(`Skipping ${entry.description} - no issue description`);
-      remFromArr(entry);
-      continue;
-    }
-
-    entry.description = `${key}: ${issueDescription}`;
+  // Log entries without key
+  for (const { entry } of entriesWithoutKey) {
+    logger.error(`Skipping ${entry.description} - no issue key`);
   }
 
-  return entries;
+  // Get unique keys to check
+  const uniqueKeys = [...new Set(entriesWithKey.map(({ key }) => key))];
+
+  console.log("");
+  logger.info(
+    `Checking ${pluralize(
+      uniqueKeys.length,
+      "issue key",
+      "issue keys"
+    )} in Jira...`
+  );
+
+  // Check all unique keys in parallel
+  const keyExistsResults = await Promise.all(
+    uniqueKeys.map(async (key) => {
+      const exists = await checkIfIssueKeyExists(key!);
+      return { key, exists };
+    })
+  );
+
+  // Create a map for quick lookup
+  const keyExistsMap = new Map(
+    keyExistsResults.map(({ key, exists }) => [key, exists])
+  );
+
+  // Log results of parallel checks
+  keyExistsResults.forEach(({ key, exists }) => {
+    if (exists) {
+      logger.info(
+        chalk.green("✓ ") + chalk.greenBright(`Issue key ${key} exists in Jira`)
+      );
+    } else {
+      logger.error(`Issue key ${key} not found in Jira`);
+    }
+  });
+
+  // Process results
+  const validEntries: TogglTimeEntry[] = [];
+  const validEntriesWithKey = entriesWithKey.filter(({ key }) =>
+    keyExistsMap.get(key)
+  );
+
+  // Skip entries with non-existent keys
+  entriesWithKey
+    .filter(({ key }) => !keyExistsMap.get(key))
+    .forEach(({ entry }) => {
+      logger.error(`Skipping ${entry.description} - issue key not found`);
+    });
+
+  // Get descriptions in parallel
+  const entriesWithDescPromises = await Promise.all(
+    validEntriesWithKey.map(async ({ entry, key }) => {
+      const description = await getIssueDescription(entry.description);
+      return { entry, key, description };
+    })
+  );
+
+  // Process entries with descriptions
+  entriesWithDescPromises.forEach(({ entry, key, description }) => {
+    if (!description) {
+      logger.error(`Skipping ${entry.description} - no issue description`);
+      return;
+    }
+
+    entry.description = `${key}: ${description}`;
+    validEntries.push(entry);
+  });
+
+  return validEntries;
 };
 
 const cmdFloorToNearestMinute = (duration: number) => {
