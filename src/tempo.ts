@@ -5,6 +5,7 @@ import {
   TempoPostResponse,
   TempoWorklogGetResponse,
   TempoWorklogPostArgs,
+  TempoWorklog,
 } from "./types";
 import { TempoAccountGetResponse } from "./types/TempoAccountTypes";
 
@@ -144,5 +145,120 @@ export const getTempoAccounts = async (): Promise<TempoAccountGetResponse> => {
   } catch (error) {
     console.log(error);
     throw error;
+  }
+};
+
+export const getTempoWorklogsByDate = async (
+  date: string
+): Promise<TempoWorklog[]> => {
+  try {
+    const authorAccountId = getConfig("tempoAuthorAccountId") as string;
+
+    if (!authorAccountId) {
+      console.log("Missing Tempo Author Account ID in configuration");
+      return [];
+    }
+
+    // Get all worklogs for the author on the specified date
+    // Using user parameter to explicitly filter to only the current user's entries
+    const res = await axios.get<TempoWorklogGetResponse>(
+      `${TEMPO_API_BASE_URL}/worklogs`,
+      {
+        headers: TEMPO_API_HEADERS,
+        params: {
+          from: date,
+          to: date,
+          user: authorAccountId,
+        },
+      }
+    );
+
+    // Double-check the author matches (belt and suspenders approach)
+    const filteredResults = res.data.results.filter(
+      (worklog) => worklog.author.accountId === authorAccountId
+    );
+
+    if (filteredResults.length !== res.data.results.length) {
+      console.log("");
+      console.log(
+        `Warning: Filtered out ${
+          res.data.results.length - filteredResults.length
+        } worklogs that didn't match your account ID`
+      );
+      console.log("");
+    }
+
+    return filteredResults;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const deleteTempoWorklog = async (
+  worklogId: number
+): Promise<boolean> => {
+  try {
+    const res = await axios.delete(
+      `${TEMPO_API_BASE_URL}/worklogs/${worklogId}`,
+      { headers: TEMPO_API_HEADERS }
+    );
+
+    return res.status === 204; // Success status for DELETE operations
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const getIssueKeyFromId = async (
+  issueId: string
+): Promise<string | null> => {
+  try {
+    const jiraUrl = getConfig("jiraUrl") as string;
+    const jiraEmail = getConfig("jiraEmail") as string;
+    const jiraToken = getConfig("jiraApiToken") as string;
+
+    // Check if required config values are present
+    if (!jiraUrl || !jiraEmail || !jiraToken) {
+      console.log(
+        "Missing Jira configuration. Please run the config command to set up Jira integration."
+      );
+      return null;
+    }
+
+    const auth = {
+      username: jiraEmail,
+      password: jiraToken,
+    };
+
+    const res = await axios.get(`${jiraUrl}/rest/api/3/issue/${issueId}`, {
+      auth,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res.status === 401) {
+      console.log("Jira authentication failed. Please check your credentials.");
+      return null;
+    }
+
+    if (res.status === 404) {
+      console.log(`Issue ID ${issueId} not found in Jira.`);
+      return null;
+    }
+
+    if (res.status >= 400) {
+      console.log(
+        `Error fetching issue from Jira: ${res.status} ${res.statusText}`
+      );
+      return null;
+    }
+
+    return res.data.key;
+  } catch (error) {
+    console.log(error);
+    return null;
   }
 };

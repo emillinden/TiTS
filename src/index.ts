@@ -5,6 +5,7 @@ import axios from "axios";
 import { Argv } from "yargs";
 import commandConfig from "./command-config";
 import commandSync from "./command-sync";
+import commandDelete from "./command-delete";
 import { createConfigFileIfNotExists } from "./config";
 
 async function main() {
@@ -19,6 +20,18 @@ async function main() {
         default: "today",
       });
     })
+    .command(
+      "delete",
+      "Delete Tempo worklogs for a specific date",
+      (yargs: Argv) => {
+        yargs.option("date", {
+          alias: "d",
+          description: "The date to delete worklogs for (yyyy-mm-dd format)",
+          type: "string",
+          default: "today",
+        });
+      }
+    )
     .command("config", "Set API keys and other settings", (yargs: Argv) => {
       yargs
         .option("toggl", {
@@ -151,11 +164,15 @@ async function main() {
     case "sync":
       commandSync(argv);
       break;
+    case "delete":
+      commandDelete(argv);
+      break;
     case "config":
       commandConfig(argv);
       break;
     case "help":
-      console.log("help meeeeee");
+      yargs.showHelp();
+      break;
     default:
       console.error(chalk.red(`Unknown command: ${command}`));
       break;
