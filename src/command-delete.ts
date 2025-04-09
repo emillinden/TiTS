@@ -5,12 +5,12 @@ import { getConfig } from "./config";
 import { parseDate } from "./date";
 import { logger } from "./logger";
 import {
-  getTempoWorklogsByDate,
   deleteTempoWorklog,
   getIssueKeyFromId,
+  getTempoWorklogsByDate,
 } from "./tempo";
-import { formatTime, pluralize, prompt } from "./utils";
 import { TempoWorklog } from "./types";
+import { formatTime, pluralize, prompt } from "./utils";
 
 type DeleteCommandArgs = {
   date: string;
@@ -21,7 +21,7 @@ type TempoWorklogWithKey = TempoWorklog & { issueKey?: string | null };
 
 const commandDelete = async (argv: DeleteCommandArgs) => {
   console.log(chalk.magenta(ascii));
-  console.log(chalk.red("\nToggl into Tempo Deleter\n"));
+  console.log(chalk.red("\nToggl into Tempo Scrubber\n"));
 
   // Display an important note about permission scope
   console.log(
@@ -148,8 +148,6 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
       success: false;
       error: any;
     };
-
-    type DeleteResult = SuccessResult | ErrorResult;
 
     const results = await Promise.allSettled(
       worklogsWithKeys.map((worklog) =>
