@@ -262,3 +262,68 @@ export const getIssueKeyFromId = async (
     return null;
   }
 };
+
+export const getIssueRemainingEstimate = async (
+  issueKey: string
+): Promise<number | null> => {
+  try {
+    const jiraUrl = getConfig("jiraUrl") as string;
+    const jiraEmail = getConfig("jiraEmail") as string;
+    const jiraToken = getConfig("jiraApiToken") as string;
+
+    // Check if required config values are present
+    if (!jiraUrl || !jiraEmail || !jiraToken) {
+      console.log(
+        "Missing Jira configuration. Please run the config command to set up Jira integration."
+      );
+      return null;
+    }
+
+    const auth = {
+      username: jiraEmail,
+      password: jiraToken,
+    };
+
+    const res = await axios.get(
+      `${jiraUrl}/rest/api/3/issue/${issueKey}?fields=timetracking`,
+      {
+        auth,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (res.status === 401) {
+      console.log("Jira authentication failed. Please check your credentials.");
+      return null;
+    }
+
+    if (res.status === 404) {
+      console.log(`Issue ${issueKey} not found in Jira.`);
+      return null;
+    }
+
+    if (res.status >= 400) {
+      console.log(
+        `Error fetching issue from Jira: ${res.status} ${res.statusText}`
+      );
+      return null;
+    }
+
+    // Check if timetracking field exists and has remainingEstimateSeconds
+    if (
+      res.data.fields &&
+      res.data.fields.timetracking &&
+      typeof res.data.fields.timetracking.remainingEstimateSeconds === "number"
+    ) {
+      return res.data.fields.timetracking.remainingEstimateSeconds;
+    } else {
+      // No remaining estimate found
+      return null;
+    }
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};

@@ -20,7 +20,8 @@ type Config =
   | "accountKey"
   | "jiraUrl"
   | "jiraApiToken"
-  | "jiraEmail";
+  | "jiraEmail"
+  | "remainingEstimateStrategy";
 type ConfigType = string | number | boolean | string[] | Record<string, string>;
 type ConfigObject = {
   [key in Config]?: ConfigType;
@@ -53,6 +54,7 @@ export const resetConfig = (): void => {
     jiraUrl: "",
     jiraApiToken: "",
     jiraEmail: "",
+    remainingEstimateStrategy: "auto",
   });
 };
 

@@ -115,6 +115,12 @@ async function main() {
           description: "The key for the account attribute",
           type: "string",
         })
+        .option("remainingEstimate", {
+          alias: "e",
+          description:
+            "Strategy for handling remaining estimates when logging time. Can be 'auto' (automatically subtract logged time), 'manual' (prompt for each issue), or 'keep' (leave unchanged). Defaults to 'auto'.",
+          type: "string",
+        })
         .option("list", {
           alias: "l",
           description: "List all saved config values",
@@ -157,6 +163,9 @@ async function main() {
     }
     if (argv["min-entry-time"]) {
       argv.minEntryTime = argv["min-entry-time"];
+    }
+    if (argv["remaining-estimate"]) {
+      argv.remainingEstimate = argv["remaining-estimate"];
     }
   }
 

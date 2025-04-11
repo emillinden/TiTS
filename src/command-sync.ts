@@ -11,6 +11,7 @@ import {
 import { logger } from "./logger";
 import {
   checkIfIssueKeyExists,
+  getIssueRemainingEstimate,
   getTempoAccounts,
   postTempoWorklog,
 } from "./tempo";
@@ -42,21 +43,29 @@ const commandSync = async (argv: SyncCommandArgs) => {
 
   if (moment().isSame(date, "day")) {
     await cmdCheckTogglRunningTimer();
-    console.log("");
   }
+
+  console.log("");
 
   const entries = await cmdFetchTogglEntries(date);
   let merged = await cmdMergeTogglEntries(entries);
   merged = await cmdConfirmIssueKeysExist(merged);
 
   console.log("");
+
   logger.info(
     chalk.magenta(
-      `Preparing ${pluralize(merged.length, "time entry", "time entries")}`
+      `Starting posting ${pluralize(
+        merged.length,
+        "time entry",
+        "time entries"
+      )} to Tempo`
     )
   );
 
-  // Get rounding configuration
+  const synced: TempoWorklog[] = [];
+
+  // Rounding
   let {
     enabled: roundingEnabled,
     interval,
@@ -73,28 +82,21 @@ const commandSync = async (argv: SyncCommandArgs) => {
   thresholdLower = thresholdLower * 60;
   let differenceAfterRounding = 0;
 
-  // Define types for our entries
-  type TempoEntryWithMetadata = {
-    entry: TempoWorklogPostArgs;
-    nicename: string;
-    duration: number;
-  };
-
-  // Prepare time entries for Tempo
-  const tempoTimeEntries: TempoEntryWithMetadata[] = [];
-  const processingErrors: { error: any; description: string }[] = [];
-
+  // POST time entries to Tempo
   for (const entry of merged) {
     try {
-      logger.info(`Preparing ${entry.description}`);
+      console.log("");
 
+      logger.info(`Posting ${entry.description}`);
       const issueKey = await getIssueKey(entry);
+
       if (!issueKey) {
         logger.error(`Skipping ${entry.description} - no issue key`);
         continue;
       }
 
       const description = await getIssueDescription(entry.description);
+
       if (!description) {
         logger.error(`Skipping ${entry.description} - no issue description`);
         continue;
@@ -252,97 +254,120 @@ const commandSync = async (argv: SyncCommandArgs) => {
         }
       }
 
-      // At this point we know issueKey is not null
-      // Create the tempo entry object
       const tempoTimeEntry: TempoWorklogPostArgs = {
-        issueKey: issueKey!,
-        description,
+        issueKey: issueKey,
+        description: description,
         timeSpentSeconds: duration,
         startDate: moment(entry.start).format("YYYY-MM-DD"),
         startTime: moment(entry.start).format("HH:mm:ss"),
         authorAccountId: getConfig("tempoAuthorAccountId") as string,
       };
 
-      // Add attributes if needed
-      if (useAccount && configAccountKey && accountKey) {
+      // Handle remaining estimate
+      const remainingEstimateStrategy =
+        (getConfig("remainingEstimateStrategy") as string) || "auto";
+
+      if (remainingEstimateStrategy !== "keep") {
+        const remainingEstimate = await getIssueRemainingEstimate(issueKey);
+
+        if (remainingEstimate !== null) {
+          let newRemainingEstimate: number | null = null;
+
+          if (remainingEstimateStrategy === "auto") {
+            // Subtract time spent from remaining estimate
+            newRemainingEstimate = Math.max(0, remainingEstimate - duration);
+            logger.info(
+              `Automatically updating remaining estimate from ${formatTime(
+                remainingEstimate
+              )} to ${formatTime(newRemainingEstimate)}`
+            );
+          } else if (remainingEstimateStrategy === "manual") {
+            // Prompt user for what to do with remaining estimate
+            const remainingEstimateOptions = [
+              {
+                key: "a",
+                label: "Auto-subtract",
+                value: Math.max(0, remainingEstimate - duration),
+              },
+              { key: "k", label: "Keep current", value: remainingEstimate },
+              { key: "m", label: "Set manually", value: null },
+              { key: "z", label: "Set to zero", value: 0 },
+            ];
+
+            logger.info(
+              `Current remaining estimate: ${formatTime(remainingEstimate)}`
+            );
+
+            const remainingEstimateAnswer = await promptKeypress(
+              `How to handle remaining estimate? (a)uto-subtract, (k)eep current, (m)anual, or (z)ero: `,
+              (input: string) =>
+                remainingEstimateOptions.some((option) => option.key === input),
+              `Invalid value, try again. How to handle remaining estimate? (a)uto-subtract, (k)eep current, (m)anual, or (z)ero: `,
+              "a"
+            );
+
+            const selectedOption = remainingEstimateOptions.find(
+              (option) => option.key === remainingEstimateAnswer
+            );
+
+            if (selectedOption) {
+              if (selectedOption.key === "m") {
+                // Manual input
+                const manualInput = await prompt(
+                  "Enter new remaining estimate in minutes: ",
+                  (input: string) =>
+                    !isNaN(parseInt(input, 10)) && parseInt(input, 10) >= 0,
+                  "Invalid value, try again. Enter new remaining estimate in minutes: ",
+                  "0"
+                );
+
+                newRemainingEstimate = parseInt(manualInput, 10) * 60; // Convert minutes to seconds
+              } else {
+                newRemainingEstimate = selectedOption.value;
+              }
+
+              logger.info(
+                `Setting remaining estimate to ${formatTime(
+                  newRemainingEstimate || 0
+                )}`
+              );
+            }
+          }
+
+          if (newRemainingEstimate !== null) {
+            tempoTimeEntry.remainingEstimateSeconds = newRemainingEstimate;
+          }
+        } else {
+          logger.warn(`No remaining estimate found for ${issueKey}`);
+        }
+      }
+
+      if (useAccount && configAccountKey) {
         tempoTimeEntry.attributes = [
           { key: configAccountKey, value: accountKey },
         ];
       }
 
-      // Store entry with metadata for later processing
-      tempoTimeEntries.push({
-        entry: tempoTimeEntry,
-        nicename,
-        duration,
-      });
+      const tempoResponse = await postTempoWorklog(tempoTimeEntry);
+
+      if (!tempoResponse || !tempoResponse.tempoWorklogId) {
+        logger.error(chalk.red(`Failed to post ${nicename}`));
+        continue;
+      }
+
+      synced.push(tempoResponse);
+
+      // Done!
+      logger.info(
+        chalk.green("✓ ") +
+          chalk.greenBright(
+            `${nicename} (${formatTime(duration)}) posted to Tempo`
+          )
+      );
     } catch (error) {
-      processingErrors.push({
-        error,
-        description: entry.description ?? "Unknown description",
-      });
-      logger.error(`Error processing time entry: ${error}`);
-    } finally {
-      console.log("");
+      logger.error(`Error syncing time entry: ${error}`);
     }
   }
-
-  // POST all entries in parallel
-  logger.info(
-    chalk.magenta(
-      `Submitting ${pluralize(
-        tempoTimeEntries.length,
-        "time entry",
-        "time entries"
-      )} to Tempo`
-    )
-  );
-
-  const results = await Promise.allSettled(
-    tempoTimeEntries.map(({ entry, nicename }) =>
-      postTempoWorklog(entry)
-        .then((response) => ({ response, nicename, success: true } as const))
-        .catch((error) => ({ error, nicename, success: false } as const))
-    )
-  );
-
-  const synced: TempoWorklog[] = [];
-
-  // Process results
-  results.forEach((result, index) => {
-    if (result.status === "fulfilled") {
-      const { success, nicename } = result.value;
-
-      if (
-        success &&
-        "response" in result.value &&
-        result.value.response?.tempoWorklogId
-      ) {
-        synced.push(result.value.response);
-        logger.info(
-          chalk.green("✓ ") +
-            chalk.greenBright(
-              `${nicename} (${formatTime(
-                tempoTimeEntries[index].duration
-              )}) posted to Tempo`
-            )
-        );
-      } else {
-        logger.error(chalk.red(`Failed to post ${nicename}`));
-      }
-    } else {
-      logger.error(
-        chalk.red(
-          `Error posting ${tempoTimeEntries[index].nicename}: ${result.reason}`
-        )
-      );
-    }
-  });
-
-  // Report processing errors
-  processingErrors.forEach(({ error, description }) => {
-    logger.error(`Error processing entry "${description}": ${error}`);
-  });
 
   console.log("");
 
@@ -533,96 +558,49 @@ const cmdMergeTogglEntries = async (entries: TogglTimeEntry[]) => {
 };
 
 const cmdConfirmIssueKeysExist = async (entries: TogglTimeEntry[]) => {
-  // Get all unique issue keys first
-  const entriesWithKeyPromises = await Promise.all(
-    entries.map(async (entry) => {
-      const key = await getIssueKey(entry);
-      return { entry, key };
-    })
-  );
+  const checked = new Set();
+  for (const entry of entries) {
+    const key = await getIssueKey(entry);
+    const remFromArr = (entry: TogglTimeEntry) =>
+      entries.splice(entries.indexOf(entry), 1);
 
-  // Filter out entries with no issue key
-  const entriesWithKey = entriesWithKeyPromises.filter(
-    ({ key }) => key !== null
-  );
-  const entriesWithoutKey = entriesWithKeyPromises.filter(
-    ({ key }) => key === null
-  );
+    if (checked.has(key)) continue;
 
-  // Log entries without key
-  for (const { entry } of entriesWithoutKey) {
-    logger.error(`Skipping ${entry.description} - no issue key`);
+    console.log("");
+
+    if (!key) {
+      logger.error(`Skipping ${entry.description} - no issue key`);
+      remFromArr(entry);
+      continue;
+    }
+
+    checked.add(key);
+
+    logger.info(`Checking if ${key} exists in Jira...`);
+    const issueKeyExistsInJira = await checkIfIssueKeyExists(key);
+
+    if (!issueKeyExistsInJira) {
+      logger.error(`Skipping ${entry.description} - issue key not found`);
+      remFromArr(entry);
+      continue;
+    }
+
+    logger.info(
+      chalk.green("✓ ") + chalk.greenBright(`Issue key ${key} exists in Jira`)
+    );
+
+    const issueDescription = await getIssueDescription(entry.description);
+
+    if (!issueDescription) {
+      logger.error(`Skipping ${entry.description} - no issue description`);
+      remFromArr(entry);
+      continue;
+    }
+
+    entry.description = `${key}: ${issueDescription}`;
   }
 
-  // Get unique keys to check
-  const uniqueKeys = [...new Set(entriesWithKey.map(({ key }) => key))];
-
-  console.log("");
-  logger.info(
-    `Checking ${pluralize(
-      uniqueKeys.length,
-      "issue key",
-      "issue keys"
-    )} in Jira...`
-  );
-
-  // Check all unique keys in parallel
-  const keyExistsResults = await Promise.all(
-    uniqueKeys.map(async (key) => {
-      const exists = await checkIfIssueKeyExists(key!);
-      return { key, exists };
-    })
-  );
-
-  // Create a map for quick lookup
-  const keyExistsMap = new Map(
-    keyExistsResults.map(({ key, exists }) => [key, exists])
-  );
-
-  // Log results of parallel checks
-  keyExistsResults.forEach(({ key, exists }) => {
-    if (exists) {
-      logger.info(
-        chalk.green("✓ ") + chalk.greenBright(`Issue key ${key} exists in Jira`)
-      );
-    } else {
-      logger.error(`Issue key ${key} not found in Jira`);
-    }
-  });
-
-  // Process results
-  const validEntries: TogglTimeEntry[] = [];
-  const validEntriesWithKey = entriesWithKey.filter(({ key }) =>
-    keyExistsMap.get(key)
-  );
-
-  // Skip entries with non-existent keys
-  entriesWithKey
-    .filter(({ key }) => !keyExistsMap.get(key))
-    .forEach(({ entry }) => {
-      logger.error(`Skipping ${entry.description} - issue key not found`);
-    });
-
-  // Get descriptions in parallel
-  const entriesWithDescPromises = await Promise.all(
-    validEntriesWithKey.map(async ({ entry, key }) => {
-      const description = await getIssueDescription(entry.description);
-      return { entry, key, description };
-    })
-  );
-
-  // Process entries with descriptions
-  entriesWithDescPromises.forEach(({ entry, key, description }) => {
-    if (!description) {
-      logger.error(`Skipping ${entry.description} - no issue description`);
-      return;
-    }
-
-    entry.description = `${key}: ${description}`;
-    validEntries.push(entry);
-  });
-
-  return validEntries;
+  return entries;
 };
 
 const cmdFloorToNearestMinute = (duration: number) => {

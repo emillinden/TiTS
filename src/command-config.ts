@@ -22,6 +22,7 @@ type ConfigCommandArgs = {
   jiraUrl: string;
   jiraEmail: string;
   jiraApiToken: string;
+  remainingEstimate: string;
 };
 
 const commandConfig = async (argv: ConfigCommandArgs) => {
@@ -224,6 +225,22 @@ const commandConfig = async (argv: ConfigCommandArgs) => {
   if (argv.accountKey) {
     setConfig("accountKey", argv.accountKey);
     logger.info(chalk.green("Account key saved successfully."));
+  }
+
+  if (argv.remainingEstimate) {
+    const allowedStrategies = ["auto", "manual", "keep"];
+    if (allowedStrategies.includes(argv.remainingEstimate)) {
+      setConfig("remainingEstimateStrategy", argv.remainingEstimate);
+      logger.info(
+        chalk.green(
+          `Remaining estimate strategy set to ${argv.remainingEstimate}.`
+        )
+      );
+    } else {
+      logger.error(
+        chalk.red("Invalid value - must be 'auto', 'manual', or 'keep'.")
+      );
+    }
   }
 };
 
