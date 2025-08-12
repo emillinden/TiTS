@@ -4,8 +4,8 @@ const chalk = require("chalk");
 import axios from "axios";
 import { Argv } from "yargs";
 import commandConfig from "./command-config";
-import commandSync from "./command-sync";
 import commandDelete from "./command-delete";
+import commandSync from "./command-sync";
 import { createConfigFileIfNotExists } from "./config";
 
 async function main() {
@@ -30,7 +30,7 @@ async function main() {
           type: "string",
           default: "today",
         });
-      }
+      },
     )
     .command("config", "Set API keys and other settings", (yargs: Argv) => {
       yargs
@@ -73,12 +73,15 @@ async function main() {
         })
         .option("round-up-at", {
           alias: "u",
-          description: "Threshold in minutes to round up time entries",
+          description:
+            "Minutes from the next rounding interval at which to automatically round up. Example: With a 15-minute interval and '2', an entry at 13 min rounds to 15 min.",
           type: "number",
         })
         .option("round-down-at", {
           alias: "d",
-          description: "Threshold in minutes to round down time entries",
+          description:
+            "Minutes from the previous rounding interval at which to automatically round down. Example: With a 15-minute interval and '3', an entry at 18 min rounds to 15 min.",
+
           type: "number",
         })
         .option("min-entry-time", {
