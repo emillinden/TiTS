@@ -32,7 +32,17 @@ const saveConfig = (config: ConfigObject): void => {
 };
 
 export const openConfig = (): ConfigObject => {
-  return JSON.parse(fs.readFileSync(CONFIG_FILE).toString());
+  if (!fs.existsSync(CONFIG_FILE)) {
+    resetConfig();
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+  } catch (err) {
+    console.error("Config corrupted, resetting:", err);
+    resetConfig();
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+  }
 };
 
 export const resetConfig = (): void => {
