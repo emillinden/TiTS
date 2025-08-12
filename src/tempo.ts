@@ -3,9 +3,9 @@ import { getConfig } from "./config";
 import { validateIssueKey } from "./issue-key";
 import {
   TempoPostResponse,
+  TempoWorklog,
   TempoWorklogGetResponse,
   TempoWorklogPostArgs,
-  TempoWorklog,
 } from "./types";
 import { TempoAccountGetResponse } from "./types/TempoAccountTypes";
 
@@ -16,7 +16,7 @@ const TEMPO_API_HEADERS = {
 };
 
 export const getIssueIdFromKey = async (
-  issueKey: string
+  issueKey: string,
 ): Promise<string | null> => {
   try {
     const jiraUrl = getConfig("jiraUrl") as string;
@@ -26,7 +26,7 @@ export const getIssueIdFromKey = async (
     // Check if required config values are present
     if (!jiraUrl || !jiraEmail || !jiraToken) {
       console.log(
-        "Missing Jira configuration. Please run the config command to set up Jira integration."
+        "Missing Jira configuration. Please run the config command to set up Jira integration.",
       );
       return null;
     }
@@ -55,7 +55,7 @@ export const getIssueIdFromKey = async (
 
     if (res.status >= 400) {
       console.log(
-        `Error fetching issue from Jira: ${res.status} ${res.statusText}`
+        `Error fetching issue from Jira: ${res.status} ${res.statusText}`,
       );
       return null;
     }
@@ -68,7 +68,7 @@ export const getIssueIdFromKey = async (
 };
 
 export const postTempoWorklog = async (
-  tempoTimeEntry: TempoWorklogPostArgs
+  tempoTimeEntry: TempoWorklogPostArgs,
 ): Promise<TempoPostResponse> => {
   try {
     if (tempoTimeEntry.issueKey && !tempoTimeEntry.issueId) {
@@ -77,7 +77,7 @@ export const postTempoWorklog = async (
         tempoTimeEntry.issueId = issueId;
       } else {
         throw new Error(
-          `Failed to get issueId for issueKey: ${tempoTimeEntry.issueKey}`
+          `Failed to get issueId for issueKey: ${tempoTimeEntry.issueKey}`,
         );
       }
     }
@@ -89,7 +89,7 @@ export const postTempoWorklog = async (
       tempoTimeEntryV4,
       {
         headers: TEMPO_API_HEADERS,
-      }
+      },
     );
 
     return res.data;
@@ -100,7 +100,7 @@ export const postTempoWorklog = async (
 };
 
 export const getTempoWorklogByIssueKey = async (
-  issueKey: string
+  issueKey: string,
 ): Promise<TempoWorklogGetResponse> => {
   try {
     const issueId = await getIssueIdFromKey(issueKey);
@@ -110,7 +110,7 @@ export const getTempoWorklogByIssueKey = async (
 
     const res = await axios.get<TempoWorklogGetResponse>(
       `${TEMPO_API_BASE_URL}/worklogs?issue=${issueId}`,
-      { headers: TEMPO_API_HEADERS }
+      { headers: TEMPO_API_HEADERS },
     );
 
     return res.data;
@@ -121,7 +121,7 @@ export const getTempoWorklogByIssueKey = async (
 };
 
 export const checkIfIssueKeyExists = async (
-  issueKey: string
+  issueKey: string,
 ): Promise<boolean> => {
   if (!validateIssueKey(issueKey)) return false;
 
@@ -138,7 +138,7 @@ export const getTempoAccounts = async (): Promise<TempoAccountGetResponse> => {
   try {
     const res = await axios.get<TempoAccountGetResponse>(
       `${TEMPO_API_BASE_URL}/accounts?limit=5000`,
-      { headers: TEMPO_API_HEADERS }
+      { headers: TEMPO_API_HEADERS },
     );
 
     return res.data;
@@ -149,46 +149,48 @@ export const getTempoAccounts = async (): Promise<TempoAccountGetResponse> => {
 };
 
 export const getTempoWorklogsByDate = async (
-  date: string
+  date: string,
 ): Promise<TempoWorklog[]> => {
   try {
     const authorAccountId = getConfig("tempoAuthorAccountId") as string;
-
     if (!authorAccountId) {
       console.log("Missing Tempo Author Account ID in configuration");
       return [];
     }
 
-    // Get all worklogs for the author on the specified date
-    // Using user parameter to explicitly filter to only the current user's entries
-    const res = await axios.get<TempoWorklogGetResponse>(
-      `${TEMPO_API_BASE_URL}/worklogs`,
-      {
-        headers: TEMPO_API_HEADERS,
-        params: {
-          from: date,
-          to: date,
-          user: authorAccountId,
+    let allResults: TempoWorklog[] = [];
+    let offset = 0;
+    const limit = 5000;
+
+    while (true) {
+      const res = await axios.get<TempoWorklogGetResponse>(
+        `${TEMPO_API_BASE_URL}/worklogs`,
+        {
+          headers: TEMPO_API_HEADERS,
+          params: {
+            from: date,
+            to: date,
+            user: authorAccountId,
+            limit,
+            offset,
+          },
         },
-      }
-    );
-
-    // Double-check the author matches (belt and suspenders approach)
-    const filteredResults = res.data.results.filter(
-      (worklog) => worklog.author.accountId === authorAccountId
-    );
-
-    if (filteredResults.length !== res.data.results.length) {
-      console.log("");
-      console.log(
-        `Warning: Filtered out ${
-          res.data.results.length - filteredResults.length
-        } worklogs that didn't match your account ID`
       );
-      console.log("");
+
+      const filteredResults = res.data.results.filter(
+        (worklog) => worklog.author.accountId === authorAccountId,
+      );
+
+      allResults = allResults.concat(filteredResults);
+
+      if (res.data.results.length < limit) {
+        break;
+      }
+
+      offset += limit;
     }
 
-    return filteredResults;
+    return allResults;
   } catch (error) {
     console.log(error);
     throw error;
@@ -196,12 +198,12 @@ export const getTempoWorklogsByDate = async (
 };
 
 export const deleteTempoWorklog = async (
-  worklogId: number
+  worklogId: number,
 ): Promise<boolean> => {
   try {
     const res = await axios.delete(
       `${TEMPO_API_BASE_URL}/worklogs/${worklogId}`,
-      { headers: TEMPO_API_HEADERS }
+      { headers: TEMPO_API_HEADERS },
     );
 
     return res.status === 204; // Success status for DELETE operations
@@ -212,7 +214,7 @@ export const deleteTempoWorklog = async (
 };
 
 export const getIssueKeyFromId = async (
-  issueId: string
+  issueId: string,
 ): Promise<string | null> => {
   try {
     const jiraUrl = getConfig("jiraUrl") as string;
@@ -222,7 +224,7 @@ export const getIssueKeyFromId = async (
     // Check if required config values are present
     if (!jiraUrl || !jiraEmail || !jiraToken) {
       console.log(
-        "Missing Jira configuration. Please run the config command to set up Jira integration."
+        "Missing Jira configuration. Please run the config command to set up Jira integration.",
       );
       return null;
     }
@@ -251,7 +253,7 @@ export const getIssueKeyFromId = async (
 
     if (res.status >= 400) {
       console.log(
-        `Error fetching issue from Jira: ${res.status} ${res.statusText}`
+        `Error fetching issue from Jira: ${res.status} ${res.statusText}`,
       );
       return null;
     }
@@ -264,7 +266,7 @@ export const getIssueKeyFromId = async (
 };
 
 export const getIssueRemainingEstimate = async (
-  issueKey: string
+  issueKey: string,
 ): Promise<number | null> => {
   try {
     const jiraUrl = getConfig("jiraUrl") as string;
@@ -274,7 +276,7 @@ export const getIssueRemainingEstimate = async (
     // Check if required config values are present
     if (!jiraUrl || !jiraEmail || !jiraToken) {
       console.log(
-        "Missing Jira configuration. Please run the config command to set up Jira integration."
+        "Missing Jira configuration. Please run the config command to set up Jira integration.",
       );
       return null;
     }
@@ -291,7 +293,7 @@ export const getIssueRemainingEstimate = async (
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (res.status === 401) {
@@ -306,7 +308,7 @@ export const getIssueRemainingEstimate = async (
 
     if (res.status >= 400) {
       console.log(
-        `Error fetching issue from Jira: ${res.status} ${res.statusText}`
+        `Error fetching issue from Jira: ${res.status} ${res.statusText}`,
       );
       return null;
     }
