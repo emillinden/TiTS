@@ -26,15 +26,15 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
   // Display an important note about permission scope
   console.log(
     chalk.yellow.bold(
-      "NOTE: This command will only delete worklogs created by your account"
-    )
+      "NOTE: This command will only delete worklogs created by your account",
+    ),
   );
   console.log(
     chalk.yellow(
       `Using account ID: ${
         getConfig("tempoAuthorAccountId") || "Not configured"
-      }`
-    )
+      }`,
+    ),
   );
   console.log("");
 
@@ -63,9 +63,9 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
         `Found ${pluralize(
           worklogs.length,
           "worklog",
-          "worklogs"
-        )} for ${formattedDate}`
-      )
+          "worklogs",
+        )} for ${formattedDate}`,
+      ),
     );
     console.log("");
 
@@ -77,7 +77,7 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
           issueKey = await getIssueKeyFromId(worklog.issue.id.toString());
         }
         return { ...worklog, issueKey };
-      })
+      }),
     );
 
     let totalTimeSpent = 0;
@@ -104,14 +104,14 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
       console.log(
         chalk.cyan(
           `${paddedIndex} - ${chalk.green(
-            issueKey
-          )}: ${description} (${timeSpent})`
-        )
+            issueKey,
+          )}: ${description} (${timeSpent})`,
+        ),
       );
     });
 
     console.log(
-      chalk.yellow(`Total time to be deleted: ${formatTime(totalTimeSpent)}`)
+      chalk.yellow(`Total time to be deleted: ${formatTime(totalTimeSpent)}`),
     );
     console.log("");
 
@@ -122,7 +122,7 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
       "Invalid input, please enter y or n: ",
       "n",
       true,
-      (input: string) => input.toLowerCase()
+      (input: string) => input.toLowerCase(),
     );
 
     if (confirmDelete !== "y") {
@@ -133,8 +133,8 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
     // Delete worklogs in parallel
     logger.info(
       chalk.red(
-        `Deleting ${pluralize(worklogs.length, "worklog", "worklogs")}...`
-      )
+        `Deleting ${pluralize(worklogs.length, "worklog", "worklogs")}...`,
+      ),
     );
 
     // Define result types for better type checking
@@ -157,7 +157,7 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
               ({
                 worklog,
                 success: true,
-              } as SuccessResult)
+              }) as SuccessResult,
           )
           .catch(
             (error) =>
@@ -165,20 +165,20 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
                 worklog,
                 success: false,
                 error,
-              } as ErrorResult)
-          )
-      )
+              }) as ErrorResult,
+          ),
+      ),
     );
 
     // Process results
     const successCount = results.filter(
-      (result) => result.status === "fulfilled" && result.value.success
+      (result) => result.status === "fulfilled" && result.value.success,
     ).length;
 
     const failedResults = results.filter(
       (result) =>
         result.status === "rejected" ||
-        (result.status === "fulfilled" && !result.value.success)
+        (result.status === "fulfilled" && !result.value.success),
     );
 
     // Log results
@@ -188,9 +188,9 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
           `Successfully deleted ${pluralize(
             successCount,
             "worklog",
-            "worklogs"
-          )}`
-        )
+            "worklogs",
+          )}`,
+        ),
       );
     }
 
@@ -200,9 +200,9 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
           `Failed to delete ${pluralize(
             failedResults.length,
             "worklog",
-            "worklogs"
-          )}`
-        )
+            "worklogs",
+          )}`,
+        ),
       );
 
       failedResults.forEach((result) => {
@@ -220,7 +220,7 @@ const commandDelete = async (argv: DeleteCommandArgs) => {
           logger.error(
             `  - Failed to delete worklog ${issueInfo}: ${
               error?.message || "Unknown error"
-            }`
+            }`,
           );
         }
       });
