@@ -5,6 +5,7 @@ import axios from "axios";
 import { Argv } from "yargs";
 import commandConfig from "./command-config";
 import commandDelete from "./command-delete";
+import commandShow from "./command-show";
 import commandSync from "./command-sync";
 import { createConfigFileIfNotExists } from "./config";
 
@@ -20,6 +21,18 @@ async function main() {
         default: "today",
       });
     })
+    .command(
+      "show",
+      "Show Tempo worklogs for a specific date",
+      (yargs: Argv) => {
+        yargs.option("date", {
+          alias: "d",
+          description: "The date to show worklogs for (yyyy-mm-dd format)",
+          type: "string",
+          default: "today",
+        });
+      },
+    )
     .command(
       "delete",
       "Delete Tempo worklogs for a specific date",
@@ -175,6 +188,9 @@ async function main() {
   switch (command) {
     case "sync":
       commandSync(argv);
+      break;
+    case "show":
+      commandShow(argv);
       break;
     case "delete":
       commandDelete(argv);
