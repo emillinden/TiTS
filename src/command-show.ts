@@ -17,7 +17,7 @@ type TempoWorklogWithKey = TempoWorklog & { issueKey?: string | null };
 
 const commandShow = async (argv: ShowCommandArgs) => {
   console.log(chalk.magenta(ascii));
-  console.log(chalk.cyan("\nToggl into Tempo — Worklog Viewer\n"));
+  console.log(chalk.cyan("\nToggl into Tempo Shower\n"));
 
   console.log(
     chalk.yellow(
