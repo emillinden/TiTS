@@ -75,10 +75,11 @@ The first time you run the sync command you will be prompted for Toggl/Tempo cre
 
 To show worklogs for a specific day, run the `show` command.
 
-````bash
+```bash
 tits show
 # or tits show -d yesterday
 # or tits show -d 2025-09-16
+```
 
 ### Delete/scrub worklogs
 
@@ -90,7 +91,7 @@ When running this command you'll first get an overview of what gets deleted, and
 tits delete
 # or tits delete -d yesterday
 # or tits delete -d 2025-09-16
-````
+```
 
 ## Configuration
 
