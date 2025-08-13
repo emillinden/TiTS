@@ -20,7 +20,7 @@ TiTS is a Command Line Interface (CLI) written in TypeScript that helps you mana
 - [Node.js](https://nodejs.org/en/) must be installed on your machine.
 - An API key for Toggl and an API key and Author ID from Tempo. You can obtain them from the respective websites.
 
-## Install/update
+## Installation/update
 
 Clone the repository
 
