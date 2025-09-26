@@ -3,7 +3,7 @@ import { logger } from "./logger";
 import { IssueKey, TogglTimeEntry } from "./types";
 import { prompt } from "./utils";
 
-export const ISSUE_KEY_REGEX = /^[A-Z]+-[0-9]+/; // e.g. ABC-123
+export const ISSUE_KEY_REGEX = /^[A-Z0-9]+-[0-9]+/; // e.g. ABC-123 or AB2-123
 
 export async function getIssueKey(
   timeEntry: TogglTimeEntry
