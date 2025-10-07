@@ -152,7 +152,7 @@ const commandSync = async (argv: SyncCommandArgs) => {
           logger.warn(
             `${issueKey} (${formatTime(
               entry.duration
-            )}) can be rounded to nearest ${interval} minutes`
+            )}) can be rounded to nearest ${interval / 60} minutes`
           );
           const roundingAnswer = await promptKeypress(
             `Round (u)p, (d)own, (n)earest or empty to skip rounding: `,
