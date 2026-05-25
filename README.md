@@ -2,7 +2,7 @@
 
 TiTS is a Command Line Interface (CLI) written in TypeScript that helps you manage your time entries by fetching them from Toggl and adding them to Tempo via Tempo's API.
 
-![](https://s11.gifyu.com/images/S15ve.gif)
+![Demo of the CLI](./assets/images/tits-demo.gif)
 
 ## Features
 
